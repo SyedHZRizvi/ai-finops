@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { buildPrompt } from '@/lib/promptBuilder';
+import { ensurePricingLoaded } from '@/lib/pricing';
 import type { StudioRequest } from '@/lib/types';
 
 const TargetProviderSchema = z.enum([
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    await ensurePricingLoaded();
     const result = buildPrompt(parsed.data as StudioRequest);
     return NextResponse.json(result);
   } catch (err) {

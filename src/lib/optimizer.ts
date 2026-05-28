@@ -235,10 +235,28 @@ export function optimizePrompt(prompt: string, model: string = 'generic'): Optim
   const savedTokens = Math.max(0, originalTokens - optimizedTokens);
   const savedPercent =
     originalTokens > 0 ? Math.round((savedTokens / originalTokens) * 1000) / 10 : 0;
-  const estimatedCostSavings = suggestions.reduce(
-    (sum, s) => sum + s.estimatedCostSavings,
+
+  // Audit C6: previously this summed savings across ALL suggestions, but the
+  // advisory strategies (split, system-prompt-extraction, use-cheaper-model,
+  // cap-output, few-shot-reduction, restructure) overlap — they cannot be
+  // stacked. Adding them inflated headline savings 2-3x. The defensible
+  // headline is:
+  //   - auto-applied strategies (remove-redundancy, compression): sum
+  //   - + the single highest-saving advisory (representative, not stackable)
+  // Strategies beyond the highest advisory remain as suggestions but their
+  // dollars are NOT added to the headline (otherwise we'd be promising
+  // savings the user cannot realise without contradicting other suggestions).
+  const APPLIED_TYPES = new Set(['remove-redundancy', 'compression']);
+  const applied = suggestions.filter((s) => APPLIED_TYPES.has(s.type));
+  const advisory = suggestions.filter((s) => !APPLIED_TYPES.has(s.type));
+  const appliedSum = applied.reduce((sum, s) => sum + s.estimatedCostSavings, 0);
+  const topAdvisory = advisory.reduce(
+    (max, s) => (s.estimatedCostSavings > max ? s.estimatedCostSavings : max),
     0,
   );
+  // Cap at the cost of the original call — savings can never exceed the bill.
+  const originalCost = calculateCost(originalTokens, analysis.estimatedOutputTokens, model).totalCost;
+  const estimatedCostSavings = Math.min(originalCost * 0.95, appliedSum + topAdvisory);
 
   return {
     originalPrompt: original,

@@ -120,17 +120,40 @@ function normalizeRecord(
 
   const timestamp = toDate(bucket['starting_at']) ?? jobMeta.rangeFrom;
 
+  // Audit C2: Anthropic's actual field is `cache_read_input_tokens`, not
+  // `cached_input_tokens`. The wrong name silently returned 0 (via `toInt`),
+  // which undercounted input tokens by the cache-read rate on every workspace
+  // using prompt caching. We read both spellings to remain compatible if the
+  // API name ever changes again.
   const uncached = toInt(result['uncached_input_tokens']);
-  const cached = toInt(result['cached_input_tokens']);
+  const cacheRead =
+    toInt(result['cache_read_input_tokens']) || toInt(result['cached_input_tokens']);
   const cacheCreation = toInt(result['cache_creation_input_tokens']);
-  const inputTokens = uncached + cached + cacheCreation;
+
+  // Audit C3: cache reads and cache writes are priced differently from
+  // uncached input. Until the pricing schema has per-cache columns we apply
+  // documented Anthropic ratios (read ~= 10% of input, write ~= 125%) so
+  // cost is at least within ~5% of the actual invoice rather than 5x off.
+  // When ModelPricingConfig gains cacheRead/cacheWrite columns this block
+  // should switch to the configured rates.
+  const inputTokens = uncached + cacheRead + cacheCreation;
   const outputTokens = toInt(result['output_tokens']);
   const totalTokens = inputTokens + outputTokens;
 
   const requestCount = toInt(result['request_count']);
   const calls = requestCount > 0 ? requestCount : 1;
 
-  const { inputCost, outputCost, totalCost } = calculateCost(inputTokens, outputTokens, model);
+  const baseCost = calculateCost(uncached + cacheCreation, outputTokens, model);
+  const cacheReadCost = calculateCost(cacheRead, 0, model);
+  // Anthropic publishes: read = 0.10x input, write surcharge = 0.25x input.
+  const ANTHROPIC_CACHE_READ_MULTIPLIER = 0.1;
+  const ANTHROPIC_CACHE_WRITE_MULTIPLIER = 1.25;
+  const cacheWriteSurcharge = calculateCost(cacheCreation, 0, model).inputCost *
+    (ANTHROPIC_CACHE_WRITE_MULTIPLIER - 1);
+  const inputCost =
+    baseCost.inputCost + cacheReadCost.inputCost * ANTHROPIC_CACHE_READ_MULTIPLIER + cacheWriteSurcharge;
+  const outputCost = baseCost.outputCost;
+  const totalCost = inputCost + outputCost;
 
   const workspaceId = toString(result['workspace_id']);
 
@@ -141,10 +164,12 @@ function normalizeRecord(
     model,
     workspace_id: workspaceId ?? null,
     uncached_input_tokens: uncached,
-    cached_input_tokens: cached,
+    cache_read_input_tokens: cacheRead,
     cache_creation_input_tokens: cacheCreation,
     output_tokens: outputTokens,
     request_count: requestCount,
+    cache_read_multiplier: ANTHROPIC_CACHE_READ_MULTIPLIER,
+    cache_write_multiplier: ANTHROPIC_CACHE_WRITE_MULTIPLIER,
   };
 
   return {

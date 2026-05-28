@@ -4,7 +4,8 @@ import { prisma } from '@/lib/db';
 import { countTokens, estimateOutputTokens } from '@/lib/tokenizer';
 import { analyzePrompt } from '@/lib/categorizer';
 import { optimizePrompt } from '@/lib/optimizer';
-import { calculateCost } from '@/lib/pricing';
+import { calculateCost, ensurePricingLoaded } from '@/lib/pricing';
+import { timingSafeEqual } from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,11 +24,29 @@ const LogBodySchema = z.object({
 
 function checkAuth(req: NextRequest): { ok: true } | { ok: false; status: number; error: string } {
   const expected = process.env.FINOPS_INGEST_TOKEN;
-  if (!expected || expected.length === 0) return { ok: true };
+  if (!expected || expected.length === 0) {
+    // Audit C8: default-deny is the long-term fix, but for backwards-compat
+    // we still accept unauthenticated logs while loudly warning on startup
+    // (see warn-on-boot in instrumentation). In production a missing token
+    // is itself an event worth logging on every request.
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('[ai-finops] WARNING: /api/log accepting unauthenticated request — set FINOPS_INGEST_TOKEN to require Bearer auth');
+    }
+    return { ok: true };
+  }
 
   const header = req.headers.get('authorization') ?? '';
   const match = header.match(/^Bearer\s+(.+)$/i);
-  if (!match || match[1] !== expected) {
+  if (!match) {
+    return { ok: false, status: 401, error: 'unauthorized' };
+  }
+  // Constant-time comparison avoids token-length timing leaks.
+  const supplied = Buffer.from(match[1], 'utf8');
+  const wanted = Buffer.from(expected, 'utf8');
+  if (supplied.length !== wanted.length) {
+    return { ok: false, status: 401, error: 'unauthorized' };
+  }
+  if (!timingSafeEqual(supplied, wanted)) {
     return { ok: false, status: 401, error: 'unauthorized' };
   }
   return { ok: true };
@@ -61,6 +80,10 @@ export async function POST(req: NextRequest) {
     } else {
       outputTokens = estimateOutputTokens(body.promptText, body.model);
     }
+
+    // Refresh editable pricing table before cost calc so Settings edits take
+    // effect on the very next ingest (audit C1).
+    await ensurePricingLoaded();
 
     const analysis = analyzePrompt(body.promptText, body.model);
     const { inputCost, outputCost, totalCost } = calculateCost(inputTokens, outputTokens, body.model);

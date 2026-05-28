@@ -81,10 +81,65 @@ const ALIASES: { match: string[]; target: string }[] = [
   { match: ['gemini'], target: 'gemini-1.5-pro' },
 ];
 
+// Live pricing cache populated from the ModelPricingConfig database table.
+// Route handlers call `ensurePricingLoaded()` before computing cost so that
+// edits made in the Settings UI actually take effect. Without this layer the
+// Settings table was dead code (audit finding C1).
+let _dbCache: ModelPricing[] = [];
+let _lastLoadedAt = 0;
+const PRICING_TTL_MS = 30_000;
+
+/**
+ * Refresh the in-memory pricing cache from the database if it is older than
+ * the TTL. Safe to call frequently; only hits the DB once per TTL window.
+ * Falls back to DEFAULT_PRICING silently if the DB query fails (e.g. during
+ * a deploy when the schema is not yet applied).
+ */
+export async function ensurePricingLoaded(): Promise<void> {
+  const now = Date.now();
+  if (now - _lastLoadedAt < PRICING_TTL_MS) return;
+  try {
+    // Lazy import avoids a circular dep with db.ts at module load time and
+    // keeps this module usable from places that don't carry a Prisma binding.
+    const { prisma } = await import('./db');
+    const rows = await prisma.modelPricingConfig.findMany({
+      where: { isActive: true },
+    });
+    _dbCache = rows.map((r) => ({
+      model: r.model,
+      ...(r.provider ? { provider: r.provider } : {}),
+      inputCostPer1M: r.inputCostPer1M,
+      outputCostPer1M: r.outputCostPer1M,
+      contextWindow: r.contextWindow,
+    }));
+    _lastLoadedAt = now;
+  } catch {
+    // Keep prior cache (or empty) so behaviour degrades gracefully to
+    // DEFAULT_PRICING rather than failing the request.
+  }
+}
+
+/**
+ * Test/debug-only: forcibly invalidate the cache so the next call refreshes
+ * from the DB. Not currently called by application code.
+ */
+export function _invalidatePricingCache(): void {
+  _lastLoadedAt = 0;
+}
+
 export function getPricing(model: string): ModelPricing {
   if (!model) return GENERIC;
   const needle = model.toLowerCase();
 
+  // 1) Live DB cache (user-editable via Settings) takes precedence.
+  const dbDirect = _dbCache.find((p) => p.model.toLowerCase() === needle);
+  if (dbDirect) return dbDirect;
+  const dbSubstring = _dbCache.find(
+    (p) => p.model.toLowerCase().length > 3 && needle.includes(p.model.toLowerCase()),
+  );
+  if (dbSubstring) return dbSubstring;
+
+  // 2) Built-in defaults (shipped with the code).
   const direct = DEFAULT_PRICING.find((p) => p.model.toLowerCase() === needle);
   if (direct) return direct;
 
@@ -93,13 +148,17 @@ export function getPricing(model: string): ModelPricing {
   );
   if (substring) return substring;
 
+  // 3) Family alias resolution.
   for (const alias of ALIASES) {
     if (alias.match.some((m) => needle.includes(m))) {
-      const target = DEFAULT_PRICING.find((p) => p.model === alias.target);
+      const target =
+        _dbCache.find((p) => p.model === alias.target) ??
+        DEFAULT_PRICING.find((p) => p.model === alias.target);
       if (target) return target;
     }
   }
 
+  // 4) Generic fallback (so cost is never zero on an unknown model).
   return GENERIC;
 }
 

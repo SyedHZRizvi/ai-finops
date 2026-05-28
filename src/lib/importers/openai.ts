@@ -122,10 +122,18 @@ function normalizeRecord(
   const timestamp =
     toDateFromUnix(bucket['start_time']) ?? toDateFromUnix(bucket['starting_at']) ?? jobMeta.rangeFrom;
 
-  const inputTokens =
-    toInt(result['input_tokens']) +
-    toInt(result['input_cached_tokens']) +
-    toInt(result['input_audio_tokens']);
+  // Audit C4: OpenAI's `input_tokens` is the TOTAL of input tokens (cached
+  // and uncached); `input_cached_tokens` is a SUBSET reported separately.
+  // The previous code added them which double-counted cached tokens (~60%
+  // overstatement on cache-heavy workloads). The fix: input_tokens already
+  // includes cached, so don't add input_cached_tokens; only use it to
+  // compute the cache discount.
+  const totalInput = toInt(result['input_tokens']);
+  const cachedInput = toInt(result['input_cached_tokens']);
+  const audioInput = toInt(result['input_audio_tokens']);
+  const inputTokens = totalInput + audioInput;
+  const uncachedInput = Math.max(0, totalInput - cachedInput);
+
   const outputTokens =
     toInt(result['output_tokens']) + toInt(result['output_audio_tokens']);
   const totalTokens = inputTokens + outputTokens;
@@ -133,7 +141,14 @@ function normalizeRecord(
   const requestCount = toInt(result['num_model_requests']);
   const calls = requestCount > 0 ? requestCount : 1;
 
-  const { inputCost, outputCost, totalCost } = calculateCost(inputTokens, outputTokens, model);
+  // Audit C3: OpenAI cached input is documented at ~50% of standard input
+  // pricing. Bill uncached + audio at the full rate, cached at half.
+  const OPENAI_CACHED_INPUT_MULTIPLIER = 0.5;
+  const fullRate = calculateCost(uncachedInput + audioInput, outputTokens, model);
+  const cachedRate = calculateCost(cachedInput, 0, model);
+  const inputCost = fullRate.inputCost + cachedRate.inputCost * OPENAI_CACHED_INPUT_MULTIPLIER;
+  const outputCost = fullRate.outputCost;
+  const totalCost = inputCost + outputCost;
 
   const projectId = toString(result['project_id']);
   const userId = toString(result['user_id']);

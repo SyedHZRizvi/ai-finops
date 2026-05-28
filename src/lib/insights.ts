@@ -44,11 +44,13 @@ function periodToSince(period: Period): Date | null {
 }
 
 // Scaling factor to project period totals onto a monthly basis.
-function monthlyMultiplier(period: Period, rows: RawRow[]): number {
-  if (period === '24h') return 30;
-  if (period === '7d') return 30 / 7;
-  if (period === '30d') return 1;
-  if (rows.length === 0) return 1;
+// Audit H6: never extrapolate from less than ~7 days of data — sub-day bursts
+// were yielding "annual" projections off by 100x.
+function monthlyMultiplier(period: Period, rows: RawRow[]): { factor: number; reliable: boolean } {
+  if (period === '24h') return { factor: 30, reliable: false };
+  if (period === '7d') return { factor: 30 / 7, reliable: true };
+  if (period === '30d') return { factor: 1, reliable: true };
+  if (rows.length === 0) return { factor: 1, reliable: false };
   // 'all': estimate based on the actual span of the dataset.
   let earliest = rows[0]!.timestamp.getTime();
   let latest = earliest;
@@ -57,8 +59,9 @@ function monthlyMultiplier(period: Period, rows: RawRow[]): number {
     if (t < earliest) earliest = t;
     if (t > latest) latest = t;
   }
-  const spanDays = Math.max(1, (latest - earliest) / (24 * 60 * 60 * 1000));
-  return 30 / spanDays;
+  const spanDays = (latest - earliest) / (24 * 60 * 60 * 1000);
+  if (spanDays < 7) return { factor: 30 / Math.max(1, spanDays), reliable: false };
+  return { factor: 30 / spanDays, reliable: true };
 }
 
 function normalizeFingerprint(text: string): string {
@@ -560,20 +563,26 @@ export async function computeInsights(period: Period = '30d'): Promise<InsightsR
   const totalCost = rows.reduce((s, r) => s + r.totalCost, 0);
   const avgCostPerCall = totalCalls > 0 ? totalCost / totalCalls : 0;
 
+  // Audit H7: concentration metrics are noise for tiny datasets. With one
+  // call, p20 = 100% trivially. Require at least 20 calls before computing
+  // anything meaningful — otherwise return zeros so the UI suppresses the
+  // "20% of calls drive 100% of cost" alert.
+  const CONCENTRATION_MIN_CALLS = 20;
+  const concentrationApplicable = totalCalls >= CONCENTRATION_MIN_CALLS;
   const sortedCosts = rows
     .map((r) => r.totalCost)
     .sort((a, b) => b - a);
   const topCount = (pct: number): number => Math.max(0, Math.ceil(totalCalls * pct));
   const sumTop = (n: number): number => sortedCosts.slice(0, n).reduce((s, c) => s + c, 0);
-  const p20Count = topCount(0.2);
-  const p5Count = topCount(0.05);
+  const p20Count = concentrationApplicable ? topCount(0.2) : 0;
+  const p5Count = concentrationApplicable ? topCount(0.05) : 0;
   const p20Cost = sumTop(p20Count);
   const p5Cost = sumTop(p5Count);
   const concentration: InsightsResponse['concentration'] = {
     p20Cost,
-    p20Percent: totalCost > 0 ? (p20Cost / totalCost) * 100 : 0,
+    p20Percent: concentrationApplicable && totalCost > 0 ? (p20Cost / totalCost) * 100 : 0,
     p5Cost,
-    p5Percent: totalCost > 0 ? (p5Cost / totalCost) * 100 : 0,
+    p5Percent: concentrationApplicable && totalCost > 0 ? (p5Cost / totalCost) * 100 : 0,
     giniLike: giniLike(sortedCosts, totalCost),
   };
 
@@ -583,7 +592,7 @@ export async function computeInsights(period: Period = '30d'): Promise<InsightsR
   const redundancyClusters = buildRedundancyClusters(rows);
   const appHotspots = buildAppHotspots(rows, totalCost);
 
-  const multiplier = monthlyMultiplier(period, rows);
+  const { factor: multiplier, reliable: projectionReliable } = monthlyMultiplier(period, rows);
 
   const rootCauses = deriveRootCauses({
     rows,
@@ -608,9 +617,18 @@ export async function computeInsights(period: Period = '30d'): Promise<InsightsR
     multiplier,
   });
 
-  const monthly = recommendations.reduce((s, r) => s + r.estimatedMonthlySavings, 0);
+  // Audit H11: cap monthly savings at the actual monthly burn and percent
+  // reduction at 80% — no realistic optimisation eliminates spend entirely,
+  // and showing 142% reduction destroys CFO trust in two seconds.
+  const rawMonthly = recommendations.reduce((s, r) => s + r.estimatedMonthlySavings, 0);
   const currentMonthlyBurn = totalCost * multiplier;
-  const percentReduction = currentMonthlyBurn > 0 ? (monthly / currentMonthlyBurn) * 100 : 0;
+  const cappedMonthly = projectionReliable
+    ? Math.min(rawMonthly, currentMonthlyBurn * 0.8)
+    : 0;
+  const percentReduction = projectionReliable && currentMonthlyBurn > 0
+    ? Math.min(80, (cappedMonthly / currentMonthlyBurn) * 100)
+    : 0;
+  const monthly = cappedMonthly;
 
   return {
     period,

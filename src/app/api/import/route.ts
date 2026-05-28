@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { decrypt, getImporter } from '@/lib/importers';
 import type { ImportedRecord } from '@/lib/importers';
+import { ensurePricingLoaded } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 // Provider imports involve external HTTP fetches and bulk DB writes; the
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    await ensurePricingLoaded();
     const importer = getImporter(body.provider);
     const result = await importer.run({
       apiKey,

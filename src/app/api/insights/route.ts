@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { computeInsights } from '@/lib/insights';
+import { ensurePricingLoaded } from '@/lib/pricing';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +18,7 @@ export async function GET(req: NextRequest) {
         { status: 400 },
       );
     }
+    await ensurePricingLoaded();
     const insights = await computeInsights(parsed.data);
     return NextResponse.json(insights);
   } catch (err) {

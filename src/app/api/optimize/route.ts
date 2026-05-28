@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { optimizePrompt } from '@/lib/optimizer';
+import { ensurePricingLoaded } from '@/lib/pricing';
 
 const BodySchema = z.object({
   prompt: z.string().min(1),
@@ -11,6 +12,7 @@ const BodySchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    await ensurePricingLoaded();
     const json = await req.json().catch(() => null);
     if (json === null) {
       return NextResponse.json({ error: 'invalid JSON body' }, { status: 400 });
