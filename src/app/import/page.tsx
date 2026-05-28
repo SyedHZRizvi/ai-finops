@@ -7,6 +7,7 @@ import {
   type ImportJobDTO,
   type ImporterInfo,
 } from '@/components/ConnectorList';
+import { EmptyState } from '@/components/EmptyState';
 
 export const dynamic = 'force-dynamic';
 
@@ -50,18 +51,17 @@ async function loadJobs(): Promise<ImportJobDTO[]> {
   }));
 }
 
-function EmptyState() {
+function ConnectorsEmpty() {
   return (
-    <div className="card card-pad text-center py-12">
-      <div className="text-lg font-medium">No connectors yet</div>
-      <div className="text-sm text-muted mt-2 max-w-md mx-auto">
-        Connect a provider to pull historical usage. The setup wizard walks you through it in about
-        two minutes.
-      </div>
-      <Link href="/setup" className="btn btn-primary mt-4 inline-flex">
-        Add your first connector
-      </Link>
-    </div>
+    <EmptyState
+      title="No connectors yet"
+      subtitle="Connect a provider to pull historical usage. The setup wizard walks you through it in about two minutes."
+      actions={
+        <Link href="/setup" className="btn-primary">
+          Add your first connector <span aria-hidden>→</span>
+        </Link>
+      }
+    />
   );
 }
 
@@ -71,20 +71,20 @@ export default async function ImportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between fade-up">
         <div>
-          <h1 className="text-xl font-semibold">Connectors</h1>
-          <p className="text-sm text-muted mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight">Connectors</h1>
+          <p className="text-sm text-muted mt-1">
             Manage provider keys and pull historical usage.
           </p>
         </div>
         <Link href="/setup" className="btn">
-          Open setup wizard
+          Open setup wizard <span aria-hidden>→</span>
         </Link>
       </div>
 
       {credentials.length === 0 && jobs.length === 0 ? (
-        <EmptyState />
+        <ConnectorsEmpty />
       ) : (
         <ConnectorList credentials={credentials} jobs={jobs} importers={importers} />
       )}

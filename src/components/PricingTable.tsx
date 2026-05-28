@@ -107,17 +107,17 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="card card-pad">
+      <div className="card card-pad fade-up">
         <div className="flex items-center justify-between">
           <div>
             <div className="label">Add model pricing</div>
-            <div className="text-xs text-muted mt-0.5">
+            <div className="text-xs text-muted mt-1">
               Costs are quoted per 1M tokens to match provider pricing pages.
             </div>
           </div>
           <button
             type="button"
-            className={showAdd ? 'btn' : 'btn btn-primary'}
+            className={showAdd ? 'btn' : 'btn-primary'}
             onClick={() => setShowAdd((v) => !v)}
           >
             {showAdd ? 'Cancel' : 'Add Model'}
@@ -130,7 +130,7 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
             className="grid grid-cols-1 md:grid-cols-5 gap-3 mt-4"
           >
             <div>
-              <label className="label block mb-1">Model</label>
+              <label className="label block mb-2">Model</label>
               <input
                 className="input"
                 placeholder="gpt-4o-mini"
@@ -140,7 +140,7 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
               />
             </div>
             <div>
-              <label className="label block mb-1">Provider</label>
+              <label className="label block mb-2">Provider</label>
               <input
                 className="input"
                 placeholder="openai"
@@ -149,7 +149,7 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
               />
             </div>
             <div>
-              <label className="label block mb-1">Input / 1M</label>
+              <label className="label block mb-2">Input / 1M</label>
               <input
                 type="number"
                 step="0.0001"
@@ -161,7 +161,7 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
               />
             </div>
             <div>
-              <label className="label block mb-1">Output / 1M</label>
+              <label className="label block mb-2">Output / 1M</label>
               <input
                 type="number"
                 step="0.0001"
@@ -173,7 +173,7 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
               />
             </div>
             <div>
-              <label className="label block mb-1">Context</label>
+              <label className="label block mb-2">Context</label>
               <div className="flex gap-2">
                 <input
                   type="number"
@@ -183,7 +183,7 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
                     setNewRow({ ...newRow, contextWindow: Number(e.target.value) })
                   }
                 />
-                <button type="submit" disabled={saving} className="btn btn-primary">
+                <button type="submit" disabled={saving} className="btn-primary shrink-0">
                   {saving ? '...' : 'Save'}
                 </button>
               </div>
@@ -196,9 +196,9 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
         <div className="card card-pad border-bad/40 bg-bad/5 text-xs text-bad">{error}</div>
       )}
 
-      <div className="card">
+      <div className="card fade-up-delay-1">
         {rows.length === 0 ? (
-          <div className="p-10 text-center text-sm text-muted">
+          <div className="p-12 text-center text-sm text-muted">
             No pricing configured. Add your first model above.
           </div>
         ) : (
@@ -221,7 +221,7 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
                   return (
                     <tr key={row.model}>
                       <td className="font-mono text-xs">{row.model}</td>
-                      <td className="text-xs text-muted">{row.provider ?? '—'}</td>
+                      <td className="text-xs text-muted capitalize">{row.provider ?? '—'}</td>
                       <td className="text-right tabular-nums">
                         {isEditing ? (
                           <input
@@ -277,11 +277,11 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
                       </td>
                       <td>
                         <span
-                          className={`chip ${
+                          className={
                             row.isActive === false
-                              ? 'text-muted'
-                              : 'border-good/40 text-good'
-                          }`}
+                              ? 'chip text-muted'
+                              : 'chip chip-good'
+                          }
                         >
                           {row.isActive === false ? 'inactive' : 'active'}
                         </span>
@@ -292,7 +292,7 @@ export function PricingTable({ rows }: { rows: PricingRow[] }) {
                             <button
                               onClick={save}
                               disabled={saving}
-                              className="btn btn-primary"
+                              className="btn-primary"
                             >
                               {saving ? '...' : 'Save'}
                             </button>

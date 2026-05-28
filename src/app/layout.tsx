@@ -10,12 +10,15 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>
+      <body className="antialiased">
         <div className="min-h-screen flex flex-col">
           <Nav />
           <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">{children}</main>
-          <footer className="text-xs text-muted text-center py-4 border-t border-border">
-            AI FinOps · Track · Categorize · Optimize
+          <footer className="text-xs text-muted text-center py-6 border-t border-border/60">
+            <span className="gradient-text font-semibold">AI FinOps</span>
+            <span className="mx-2 text-muted">·</span>
+            Track <span className="mx-1 text-borderBright">·</span> Categorize{' '}
+            <span className="mx-1 text-borderBright">·</span> Optimize
           </footer>
         </div>
       </body>

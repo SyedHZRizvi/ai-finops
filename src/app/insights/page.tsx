@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { Category, InsightsResponse } from '@/lib/types';
+import type { InsightsResponse } from '@/lib/types';
 import { PeriodSelect } from '@/components/PeriodSelect';
 import { InsightsSummary } from '@/components/InsightsSummary';
 import { RecommendationsList } from '@/components/RecommendationsList';
@@ -7,22 +7,13 @@ import { TopSpendersTable } from '@/components/TopSpendersTable';
 import { ModelMismatchTable } from '@/components/ModelMismatchTable';
 import { RedundancyClusters } from '@/components/RedundancyClusters';
 import { OutputBloatTable } from '@/components/OutputBloatTable';
+import { EmptyState } from '@/components/EmptyState';
+import { CATEGORY_CHIP } from '@/components/PromptTable';
 
 export const dynamic = 'force-dynamic';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
 const VALID_PERIODS = new Set(['24h', '7d', '30d', 'all']);
-
-const CATEGORY_CHIP: Record<Category, string> = {
-  factual: 'bg-brand2/10 text-brand2 border-brand2/30',
-  reasoning: 'bg-brand/10 text-brand border-brand/30',
-  creative: 'bg-pink-500/10 text-pink-300 border-pink-400/30',
-  code: 'bg-good/10 text-good border-good/30',
-  analytical: 'bg-warn/10 text-warn border-warn/30',
-  conversational: 'bg-blue-500/10 text-blue-300 border-blue-400/30',
-  instructional: 'bg-violet-500/10 text-violet-300 border-violet-400/30',
-  other: 'bg-panel2 text-muted border-border',
-};
 
 function formatUSD(n: number): string {
   if (!Number.isFinite(n)) return '$0.00';
@@ -48,13 +39,23 @@ async function loadInsights(period: string): Promise<InsightsResponse | null> {
 
 function AppHotspotsCard({ hotspots }: { hotspots: InsightsResponse['appHotspots'] }) {
   return (
-    <div className="card">
-      <div className="px-5 py-3 border-b border-border">
-        <div className="label">App hotspots</div>
-        <div className="text-xs text-muted mt-0.5">Where AI spend concentrates by app</div>
+    <div className="card fade-up-delay-2">
+      <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+        <div>
+          <div className="label">App hotspots</div>
+          <div className="text-xs text-muted mt-1">Where AI spend concentrates by app</div>
+        </div>
+        <div className="w-9 h-9 rounded-xl bg-indigo/15 border border-indigo/30 flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="w-4 h-4 text-indigo" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <line x1="9" y1="9" x2="15" y2="9" strokeLinecap="round" />
+            <line x1="9" y1="13" x2="15" y2="13" strokeLinecap="round" />
+            <line x1="9" y1="17" x2="13" y2="17" strokeLinecap="round" />
+          </svg>
+        </div>
       </div>
       {hotspots.length === 0 ? (
-        <div className="p-8 text-center text-sm text-muted">No app data available.</div>
+        <div className="p-10 text-center text-sm text-muted">No app data available.</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="tbl">
@@ -71,18 +72,18 @@ function AppHotspotsCard({ hotspots }: { hotspots: InsightsResponse['appHotspots
             <tbody>
               {hotspots.map((h, i) => (
                 <tr key={`${h.appName ?? 'unknown'}-${i}`}>
-                  <td className="text-xs">
+                  <td className="text-xs font-medium">
                     {h.appName ?? <span className="text-muted">unknown</span>}
                   </td>
                   <td className="font-mono text-xs whitespace-nowrap">{h.topModel}</td>
                   <td>
-                    <span className={`chip border capitalize ${CATEGORY_CHIP[h.topCategory]}`}>
+                    <span className={`chip capitalize ${CATEGORY_CHIP[h.topCategory]}`}>
                       {h.topCategory}
                     </span>
                   </td>
                   <td className="text-right tabular-nums">{formatNum(h.calls)}</td>
-                  <td className="text-right tabular-nums">{formatUSD(h.totalCost)}</td>
-                  <td className="text-right tabular-nums">{h.pctOfTotal.toFixed(1)}%</td>
+                  <td className="text-right tabular-nums font-semibold">{formatUSD(h.totalCost)}</td>
+                  <td className="text-right tabular-nums text-inkDim">{h.pctOfTotal.toFixed(1)}%</td>
                 </tr>
               ))}
             </tbody>
@@ -93,18 +94,22 @@ function AppHotspotsCard({ hotspots }: { hotspots: InsightsResponse['appHotspots
   );
 }
 
-function EmptyState() {
+function InsightsEmpty() {
   return (
-    <div className="card card-pad text-center py-12">
-      <div className="text-lg font-medium">No prompts logged yet</div>
-      <div className="text-sm text-muted mt-2 max-w-md mx-auto">
-        Insights need logged AI calls to analyze. Install the AI FinOps SDK in your app and start
-        recording calls — root causes and ranked recommendations will appear here within minutes.
-      </div>
-      <Link href="/settings" className="btn btn-primary mt-4 inline-flex">
-        View SDK install docs <span aria-hidden>→</span>
-      </Link>
-    </div>
+    <EmptyState
+      title="No prompts logged yet"
+      subtitle="Insights need logged AI calls to analyze. Install the AI FinOps SDK in your app and start recording calls — root causes and ranked recommendations will appear here within minutes."
+      actions={
+        <>
+          <Link href="/setup" className="btn-primary">
+            Run setup wizard <span aria-hidden>→</span>
+          </Link>
+          <Link href="/settings" className="btn">
+            SDK install docs
+          </Link>
+        </>
+      }
+    />
   );
 }
 
@@ -120,10 +125,10 @@ export default async function InsightsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between fade-up">
         <div>
-          <h1 className="text-xl font-semibold">Insights</h1>
-          <p className="text-sm text-muted mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight">Insights</h1>
+          <p className="text-sm text-muted mt-1">
             Why your AI bill is what it is — and the ranked actions that would lower it.
           </p>
         </div>
@@ -135,7 +140,7 @@ export default async function InsightsPage({
           Unable to load insights. Make sure the API is reachable.
         </div>
       ) : data.totals.calls === 0 ? (
-        <EmptyState />
+        <InsightsEmpty />
       ) : (
         <>
           <InsightsSummary data={data} />

@@ -26,9 +26,9 @@ export default async function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Settings</h1>
-        <p className="text-sm text-muted mt-0.5">
+      <div className="fade-up">
+        <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+        <p className="text-sm text-muted mt-1">
           Model pricing config used to compute cost across the app.
         </p>
       </div>

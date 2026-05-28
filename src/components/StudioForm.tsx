@@ -11,6 +11,7 @@ import type {
   TargetProvider,
   Tone,
 } from '@/lib/types';
+import { CATEGORY_CHIP, COMPLEXITY_CHIP } from './PromptTable';
 
 const PROVIDERS: TargetProvider[] = [
   'claude', 'gpt', 'gemini', 'copilot', 'cursor', 'perplexity', 'generic',
@@ -144,7 +145,7 @@ export function StudioForm() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <form onSubmit={submit} className="card card-pad space-y-3">
+      <form onSubmit={submit} className="card card-pad space-y-4 fade-up">
         <div className="flex items-center justify-between">
           <div className="label">Inputs</div>
           <button type="button" onClick={loadSample} className="btn text-xs">
@@ -153,7 +154,7 @@ export function StudioForm() {
         </div>
 
         <div>
-          <label className="label block mb-1">Problem</label>
+          <label className="label block mb-2">Problem</label>
           <textarea
             value={problem}
             onChange={(e) => setProblem(e.target.value)}
@@ -163,7 +164,7 @@ export function StudioForm() {
         </div>
 
         <div>
-          <label className="label block mb-1">Desired Outcome</label>
+          <label className="label block mb-2">Desired Outcome</label>
           <textarea
             value={desiredOutcome}
             onChange={(e) => setDesiredOutcome(e.target.value)}
@@ -174,7 +175,7 @@ export function StudioForm() {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label block mb-1">Target Provider</label>
+            <label className="label block mb-2">Target Provider</label>
             <select
               className="input"
               value={targetProvider}
@@ -188,7 +189,7 @@ export function StudioForm() {
             </select>
           </div>
           <div>
-            <label className="label block mb-1">Audience</label>
+            <label className="label block mb-2">Audience</label>
             <select
               className="input"
               value={audience}
@@ -204,7 +205,7 @@ export function StudioForm() {
 
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <label className="label block mb-1">Format</label>
+            <label className="label block mb-2">Format</label>
             <select
               className="input"
               value={outputFormat}
@@ -216,7 +217,7 @@ export function StudioForm() {
             </select>
           </div>
           <div>
-            <label className="label block mb-1">Length</label>
+            <label className="label block mb-2">Length</label>
             <select
               className="input"
               value={outputLength}
@@ -229,7 +230,7 @@ export function StudioForm() {
             </select>
           </div>
           <div>
-            <label className="label block mb-1">Tone</label>
+            <label className="label block mb-2">Tone</label>
             <select
               className="input"
               value={tone}
@@ -243,7 +244,7 @@ export function StudioForm() {
         </div>
 
         <div>
-          <label className="label block mb-1">Must Include (comma-separated)</label>
+          <label className="label block mb-2">Must Include (comma-separated)</label>
           <input
             type="text"
             value={mustInclude}
@@ -254,7 +255,7 @@ export function StudioForm() {
         </div>
 
         <div>
-          <label className="label block mb-1">Must Avoid (comma-separated)</label>
+          <label className="label block mb-2">Must Avoid (comma-separated)</label>
           <input
             type="text"
             value={mustAvoid}
@@ -268,7 +269,7 @@ export function StudioForm() {
           <button
             type="submit"
             disabled={loading || !problem.trim() || !desiredOutcome.trim()}
-            className="btn btn-primary disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
           >
             {loading ? 'Generating...' : 'Generate Prompt'}
           </button>
@@ -284,17 +285,34 @@ export function StudioForm() {
 
       <div className="space-y-4">
         {!result && !loading && (
-          <div className="card card-pad">
-            <div className="label">Result</div>
-            <div className="text-sm text-muted mt-2">
-              Describe your problem on the left and click Generate. You will see:
+          <div className="card card-pad fade-up-delay-1">
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-brand-gradient flex items-center justify-center shrink-0 shadow-glow">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+                  <path d="M12 3l2.39 6.13L20 11l-5.61 1.87L12 19l-2.39-6.13L4 11l5.61-1.87L12 3z" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div>
+                <div className="label">Result</div>
+                <div className="text-sm text-inkDim mt-1">
+                  Describe your problem on the left and click Generate.
+                </div>
+              </div>
             </div>
-            <ul className="text-xs text-muted mt-3 space-y-1.5 list-disc list-inside">
-              <li>Auto-detected category, complexity, and dimensions</li>
-              <li>Recommended model for your target provider</li>
-              <li>3-4 prompt variants (terse, standard, detailed, system+user)</li>
-              <li>Token count and estimated cost per variant</li>
-              <li>Split prompts when the problem is multidimensional</li>
+            <div className="text-xs font-semibold text-inkDim mb-2">You will see:</div>
+            <ul className="text-xs text-muted space-y-2">
+              {[
+                'Auto-detected category, complexity, and dimensions',
+                'Recommended model for your target provider',
+                '3-4 prompt variants (terse, standard, detailed, system+user)',
+                'Token count and estimated cost per variant',
+                'Split prompts when the problem is multidimensional',
+              ].map((t) => (
+                <li key={t} className="flex gap-2">
+                  <span className="text-brandLight mt-0.5" aria-hidden>→</span>
+                  <span>{t}</span>
+                </li>
+              ))}
             </ul>
             <button onClick={loadSample} className="btn mt-4">
               Load sample <span aria-hidden>→</span>
@@ -303,21 +321,28 @@ export function StudioForm() {
         )}
 
         {loading && (
-          <div className="card card-pad text-sm text-muted">Generating prompt...</div>
+          <div className="card card-pad text-sm text-muted flex items-center gap-2 fade-up-delay-1">
+            <span className="inline-block w-3 h-3 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            Generating prompt...
+          </div>
         )}
 
         {result && (
           <>
-            <div className="card card-pad">
+            <div className="card card-pad fade-up">
               <div className="label">{providerLabel}</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <span className="chip capitalize">{result.detectedCategory}</span>
-                <span className="chip capitalize">{result.detectedComplexity}</span>
-                <span className="chip">model: {result.recommendedModel}</span>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className={`chip capitalize ${CATEGORY_CHIP[result.detectedCategory]}`}>
+                  {result.detectedCategory}
+                </span>
+                <span className={`chip capitalize ${COMPLEXITY_CHIP[result.detectedComplexity]}`}>
+                  {result.detectedComplexity}
+                </span>
+                <span className="chip chip-brand">model: {result.recommendedModel}</span>
               </div>
               {result.detectedDimensions.length > 0 && (
-                <div className="mt-3">
-                  <div className="label mb-1">Dimensions</div>
+                <div className="mt-4">
+                  <div className="label mb-2">Dimensions</div>
                   <div className="flex flex-wrap gap-2">
                     {result.detectedDimensions.map((d, i) => (
                       <span key={i} className="chip">{d}</span>
@@ -328,12 +353,12 @@ export function StudioForm() {
             </div>
 
             {result.warnings.length > 0 && (
-              <div className="card card-pad border-warn/40 bg-warn/5">
-                <div className="label text-warn/90 mb-2">Warnings</div>
-                <ul className="text-xs space-y-1.5">
+              <div className="card card-pad border-warn/40 bg-warn/5 fade-up-delay-1">
+                <div className="label text-warn mb-3">Warnings</div>
+                <ul className="text-xs space-y-2">
                   {result.warnings.map((w, i) => (
                     <li key={i} className="flex gap-2">
-                      <span className="text-warn shrink-0" aria-hidden>!</span>
+                      <span className="text-warn shrink-0 mt-0.5" aria-hidden>!</span>
                       <span className="text-ink/90">{w}</span>
                     </li>
                   ))}
@@ -342,12 +367,12 @@ export function StudioForm() {
             )}
 
             {result.tips.length > 0 && (
-              <div className="card card-pad">
-                <div className="label mb-2">Tips</div>
-                <ul className="text-xs space-y-1.5">
+              <div className="card card-pad fade-up-delay-2">
+                <div className="label mb-3">Tips</div>
+                <ul className="text-xs space-y-2">
                   {result.tips.map((t, i) => (
                     <li key={i} className="flex gap-2">
-                      <span className="text-brand shrink-0" aria-hidden>•</span>
+                      <span className="text-brandLight shrink-0 mt-0.5" aria-hidden>•</span>
                       <span className="text-ink/90">{t}</span>
                     </li>
                   ))}
@@ -355,7 +380,7 @@ export function StudioForm() {
               </div>
             )}
 
-            <div className="space-y-3">
+            <div className="space-y-3 fade-up-delay-2">
               <div className="label">Variants ({result.variants.length})</div>
               {result.variants.map((v, i) => (
                 <VariantCard key={i} variant={v} />
@@ -363,7 +388,7 @@ export function StudioForm() {
             </div>
 
             {result.splitPrompts && result.splitPrompts.length > 0 && (
-              <div className="card card-pad">
+              <div className="card card-pad fade-up-delay-3">
                 <div className="label mb-2">Split prompts ({result.splitPrompts.length})</div>
                 <div className="text-xs text-muted mb-3">
                   Multidimensional problem detected. Run these as separate, focused calls.
@@ -409,40 +434,40 @@ function VariantCard({ variant }: { variant: StudioVariant }) {
 
   return (
     <div className="card card-pad">
-      <div className="flex items-start justify-between gap-3 mb-2">
+      <div className="flex items-start justify-between gap-3 mb-3">
         <div>
-          <div className="text-sm font-medium capitalize">{variant.style.replace(/-/g, ' ')}</div>
-          <div className="text-xs text-muted italic mt-0.5">{variant.rationale}</div>
+          <div className="text-sm font-semibold capitalize">{variant.style.replace(/-/g, ' ')}</div>
+          <div className="text-xs text-muted italic mt-1">{variant.rationale}</div>
         </div>
-        <div className="text-right shrink-0 text-xs tabular-nums">
-          <div>{formatNum(variant.tokenCount)} tok in</div>
+        <div className="text-right shrink-0 text-xs tabular-nums space-y-0.5">
+          <div className="text-inkDim font-semibold">{formatNum(variant.tokenCount)} tok in</div>
           <div className="text-muted">~{formatNum(variant.estimatedOutputTokens)} tok out</div>
-          <div className="text-good">{formatUSD(variant.estimatedCost)} / call</div>
+          <div className="text-good font-semibold">{formatUSD(variant.estimatedCost)} / call</div>
         </div>
       </div>
 
       {variant.systemPrompt && (
-        <div className="mb-2">
-          <div className="flex items-center justify-between mb-1">
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1.5">
             <div className="label">System</div>
             <button onClick={copySystem} className="btn text-xs">
               {copiedSystem ? 'Copied' : 'Copy'}
             </button>
           </div>
-          <pre className="whitespace-pre-wrap break-words text-xs font-mono leading-relaxed bg-panel2 border border-border rounded-lg p-3 max-h-40 overflow-auto">
+          <pre className="whitespace-pre-wrap break-words text-xs font-mono leading-relaxed bg-panel2 border border-border rounded-xl p-3 max-h-40 overflow-auto">
             {variant.systemPrompt}
           </pre>
         </div>
       )}
 
       <div>
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-1.5">
           <div className="label">{variant.systemPrompt ? 'User' : 'Prompt'}</div>
           <button onClick={copyPrompt} className="btn text-xs">
             {copied ? 'Copied' : 'Copy'}
           </button>
         </div>
-        <pre className="whitespace-pre-wrap break-words text-xs font-mono leading-relaxed bg-panel2 border border-border rounded-lg p-3 max-h-80 overflow-auto">
+        <pre className="whitespace-pre-wrap break-words text-xs font-mono leading-relaxed bg-panel2 border border-border rounded-xl p-3 max-h-80 overflow-auto">
           {variant.prompt}
         </pre>
       </div>
@@ -463,13 +488,13 @@ function SplitPromptItem({ index, prompt }: { index: number; prompt: string }) {
   }
   return (
     <li className="text-xs">
-      <div className="inline-flex items-center gap-2 mb-1">
-        <span className="text-muted">#{index}</span>
-        <button onClick={copy} className="btn text-xs py-0.5">
+      <div className="inline-flex items-center gap-2 mb-1.5">
+        <span className="text-muted font-semibold">#{index}</span>
+        <button onClick={copy} className="btn text-xs py-1">
           {copied ? 'Copied' : 'Copy'}
         </button>
       </div>
-      <pre className="whitespace-pre-wrap break-words text-xs font-mono leading-relaxed bg-panel2 border border-border rounded-lg p-2">
+      <pre className="whitespace-pre-wrap break-words text-xs font-mono leading-relaxed bg-panel2 border border-border rounded-xl p-3">
         {prompt}
       </pre>
     </li>

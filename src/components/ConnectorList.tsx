@@ -38,6 +38,18 @@ interface OutcomeState {
   warnings?: string[];
 }
 
+const PROVIDER_ACCENT: Record<string, { dot: string; bg: string; border: string; text: string }> = {
+  anthropic: { dot: '#f59e0b', bg: 'bg-amber/10', border: 'border-amber/30', text: 'text-amber' },
+  openai: { dot: '#22c55e', bg: 'bg-good/10', border: 'border-good/30', text: 'text-good' },
+  google: { dot: '#3b82f6', bg: 'bg-blue/10', border: 'border-blue/30', text: 'text-blue' },
+  azure: { dot: '#22d3ee', bg: 'bg-brand2/10', border: 'border-brand2/30', text: 'text-brand2' },
+  gateway: { dot: '#8b5cf6', bg: 'bg-brand/10', border: 'border-brand/30', text: 'text-brandLight' },
+};
+
+function getProviderAccent(provider: string) {
+  return PROVIDER_ACCENT[provider] ?? { dot: '#7b829a', bg: 'bg-panel2', border: 'border-border', text: 'text-muted' };
+}
+
 function formatRelative(iso: string): string {
   const then = new Date(iso).getTime();
   const now = Date.now();
@@ -76,12 +88,12 @@ function truncate(s: string | null, max: number): string {
 function statusChipClass(status: string): string {
   switch (status) {
     case 'succeeded':
-      return 'border-good/40 text-good bg-good/5';
+      return 'chip-good';
     case 'failed':
-      return 'border-bad/40 text-bad bg-bad/5';
+      return 'chip-bad';
     case 'running':
     case 'pending':
-      return 'border-warn/40 text-warn bg-warn/5';
+      return 'chip-warn';
     default:
       return '';
   }
@@ -162,12 +174,12 @@ export function ConnectorList({
   }
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-3">
+    <div className="space-y-8">
+      <section className="space-y-3 fade-up">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold">Connected providers</h2>
-            <div className="text-xs text-muted mt-0.5">
+            <h2 className="text-lg font-bold tracking-tight">Connected providers</h2>
+            <div className="text-xs text-muted mt-1">
               Re-run imports manually. Keys are encrypted at rest.
             </div>
           </div>
@@ -197,16 +209,16 @@ export function ConnectorList({
         )}
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">Add a connector</h2>
+      <section className="space-y-3 fade-up-delay-1">
+        <h2 className="text-lg font-bold tracking-tight">Add a connector</h2>
         <AddConnectorForm importers={importers} onAdded={() => router.refresh()} />
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">Recent imports</h2>
+      <section className="space-y-3 fade-up-delay-2">
+        <h2 className="text-lg font-bold tracking-tight">Recent imports</h2>
         <div className="card">
           {jobs.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted">No imports yet.</div>
+            <div className="p-10 text-center text-sm text-muted">No imports yet.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="tbl">
@@ -221,26 +233,38 @@ export function ConnectorList({
                   </tr>
                 </thead>
                 <tbody>
-                  {jobs.map((j) => (
-                    <tr key={j.id}>
-                      <td className="capitalize text-xs">{j.provider}</td>
-                      <td className="text-xs text-muted whitespace-nowrap">
-                        {formatRelative(j.startedAt)}
-                      </td>
-                      <td className="text-xs text-muted tabular-nums whitespace-nowrap">
-                        {formatDuration(j.startedAt, j.finishedAt)}
-                      </td>
-                      <td>
-                        <span className={`chip capitalize ${statusChipClass(j.status)}`}>
-                          {j.status}
-                        </span>
-                      </td>
-                      <td className="text-right tabular-nums">{j.recordsImported}</td>
-                      <td className="text-xs text-muted max-w-xs">
-                        {truncate(j.errorMessage, 60)}
-                      </td>
-                    </tr>
-                  ))}
+                  {jobs.map((j) => {
+                    const accent = getProviderAccent(j.provider);
+                    return (
+                      <tr key={j.id}>
+                        <td className="capitalize text-xs">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: accent.dot }}
+                              aria-hidden
+                            />
+                            {j.provider}
+                          </div>
+                        </td>
+                        <td className="text-xs text-muted whitespace-nowrap">
+                          {formatRelative(j.startedAt)}
+                        </td>
+                        <td className="text-xs text-muted tabular-nums whitespace-nowrap">
+                          {formatDuration(j.startedAt, j.finishedAt)}
+                        </td>
+                        <td>
+                          <span className={`chip capitalize ${statusChipClass(j.status)}`}>
+                            {j.status}
+                          </span>
+                        </td>
+                        <td className="text-right tabular-nums font-semibold">{j.recordsImported}</td>
+                        <td className="text-xs text-muted max-w-xs">
+                          {truncate(j.errorMessage, 60)}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -248,8 +272,8 @@ export function ConnectorList({
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold">CSV import</h2>
+      <section className="space-y-3 fade-up-delay-3">
+        <h2 className="text-lg font-bold tracking-tight">CSV import</h2>
         <CsvImportCard onComplete={() => router.refresh()} />
       </section>
     </div>
@@ -280,6 +304,7 @@ function CredentialCard({
   const [newKey, setNewKey] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const accent = getProviderAccent(cred.provider);
 
   async function replaceKey(e: React.FormEvent) {
     e.preventDefault();
@@ -315,22 +340,33 @@ function CredentialCard({
   return (
     <div className="card card-pad">
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="font-medium capitalize">{cred.provider}</div>
-            {cred.label && <span className="chip">{cred.label}</span>}
-            {!cred.isActive && <span className="chip text-muted">inactive</span>}
+        <div className="min-w-0 flex items-start gap-3">
+          <div
+            className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${accent.bg} ${accent.border}`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${cred.isActive ? 'pulse-glow' : ''}`}
+              style={{ backgroundColor: accent.dot }}
+              aria-hidden
+            />
           </div>
-          <div className="text-xs text-muted mt-1">
-            {lastSuccess
-              ? `Last imported: ${formatRelative(lastSuccess.startedAt)} (${lastSuccess.recordsImported} records)`
-              : 'No successful imports yet'}
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <div className="font-semibold capitalize">{cred.provider}</div>
+              {cred.label && <span className="chip">{cred.label}</span>}
+              {!cred.isActive && <span className="chip text-muted">inactive</span>}
+            </div>
+            <div className="text-xs text-muted mt-1">
+              {lastSuccess
+                ? `Last imported: ${formatRelative(lastSuccess.startedAt)} (${lastSuccess.recordsImported} records)`
+                : 'No successful imports yet'}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            className="btn btn-primary disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
             onClick={onRunImport}
             disabled={outcome.status === 'running'}
           >
@@ -350,7 +386,7 @@ function CredentialCard({
       </div>
 
       {isEditing && (
-        <form onSubmit={replaceKey} className="mt-4 space-y-2">
+        <form onSubmit={replaceKey} className="mt-4 space-y-3">
           <label className="label block">New API key</label>
           <input
             type="password"
@@ -365,7 +401,7 @@ function CredentialCard({
             <button
               type="submit"
               disabled={saving || !newKey.trim()}
-              className="btn btn-primary disabled:opacity-50"
+              className="btn-primary disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
@@ -445,7 +481,7 @@ function AddConnectorForm({
   return (
     <form onSubmit={submit} className="card card-pad grid grid-cols-1 md:grid-cols-4 gap-3">
       <div>
-        <label className="label block mb-1">Provider</label>
+        <label className="label block mb-2">Provider</label>
         <select
           className="input"
           value={provider}
@@ -459,7 +495,7 @@ function AddConnectorForm({
         </select>
       </div>
       <div className="md:col-span-2">
-        <label className="label block mb-1">API key</label>
+        <label className="label block mb-2">API key</label>
         <input
           type="password"
           autoComplete="off"
@@ -470,7 +506,7 @@ function AddConnectorForm({
         />
       </div>
       <div>
-        <label className="label block mb-1">Label</label>
+        <label className="label block mb-2">Label</label>
         <div className="flex gap-2">
           <input
             className="input"
@@ -481,7 +517,7 @@ function AddConnectorForm({
           <button
             type="submit"
             disabled={saving || !apiKey.trim()}
-            className="btn btn-primary disabled:opacity-50 shrink-0"
+            className="btn-primary disabled:opacity-50 shrink-0"
           >
             {saving ? '...' : 'Add'}
           </button>
@@ -549,7 +585,7 @@ function CsvImportCard({ onComplete }: { onComplete: () => void }) {
           type="button"
           onClick={submit}
           disabled={outcome.status === 'running' || !csvText.trim()}
-          className="btn btn-primary disabled:opacity-50"
+          className="btn-primary disabled:opacity-50"
         >
           {outcome.status === 'running' ? 'Importing...' : 'Import CSV'}
         </button>
@@ -579,7 +615,7 @@ function OutcomeView({ outcome }: { outcome: OutcomeState }) {
   }
   return (
     <div className="mt-3 space-y-1.5">
-      <div className="text-xs text-good">
+      <div className="text-xs text-good font-semibold">
         Imported {outcome.recordsImported ?? 0} record{outcome.recordsImported === 1 ? '' : 's'}.
       </div>
       {outcome.warnings && outcome.warnings.length > 0 && (

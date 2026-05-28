@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Category, Complexity, PromptCharacteristics } from '@/lib/types';
+import { CATEGORY_CHIP, COMPLEXITY_CHIP } from './PromptTable';
 
 interface PromptDetailData {
   id: string;
@@ -81,56 +82,64 @@ export function PromptDetail({ id }: { id: string }) {
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20"
+        className="fixed inset-0 bg-black/70 backdrop-blur-md z-30"
         onClick={close}
         aria-hidden
       />
-      <aside className="fixed top-0 right-0 h-screen w-full max-w-2xl bg-panel border-l border-border z-30 overflow-y-auto">
-        <div className="sticky top-0 bg-panel border-b border-border px-5 py-3 flex items-center justify-between">
-          <div className="text-sm font-medium">Prompt detail</div>
+      <aside className="fixed top-0 right-0 h-screen w-full max-w-2xl bg-panel border-l border-borderBright z-40 overflow-y-auto shadow-2xl">
+        <div className="sticky top-0 bg-panel/95 backdrop-blur-xl border-b border-border px-6 py-4 flex items-center justify-between z-10">
+          <div>
+            <div className="text-base font-bold tracking-tight">Prompt detail</div>
+            <div className="text-xs text-muted mt-0.5">Inspect categorization, cost, and content</div>
+          </div>
           <button onClick={close} className="btn" aria-label="Close">
             Close <span aria-hidden>×</span>
           </button>
         </div>
 
-        <div className="p-5 space-y-5">
-          {loading && <div className="text-sm text-muted">Loading...</div>}
+        <div className="p-6 space-y-6">
+          {loading && (
+            <div className="text-sm text-muted flex items-center gap-2">
+              <span className="inline-block w-3 h-3 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+              Loading...
+            </div>
+          )}
           {error && <div className="text-sm text-bad">Error: {error}</div>}
           {data && (
             <>
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <div className="label">Logged</div>
-                  <div className="mt-0.5 tabular-nums">
+                  <div className="mt-1.5 tabular-nums">
                     {new Date(data.timestamp).toLocaleString()}
                   </div>
                 </div>
                 <div>
                   <div className="label">Model</div>
-                  <div className="mt-0.5 font-mono">{data.model}</div>
+                  <div className="mt-1.5 font-mono">{data.model}</div>
                 </div>
                 {data.provider && (
                   <div>
                     <div className="label">Provider</div>
-                    <div className="mt-0.5">{data.provider}</div>
+                    <div className="mt-1.5 capitalize">{data.provider}</div>
                   </div>
                 )}
                 {data.appName && (
                   <div>
                     <div className="label">App</div>
-                    <div className="mt-0.5">{data.appName}</div>
+                    <div className="mt-1.5">{data.appName}</div>
                   </div>
                 )}
                 {data.userId && (
                   <div>
                     <div className="label">User</div>
-                    <div className="mt-0.5 font-mono">{data.userId}</div>
+                    <div className="mt-1.5 font-mono">{data.userId}</div>
                   </div>
                 )}
                 {typeof data.latencyMs === 'number' && (
                   <div>
                     <div className="label">Latency</div>
-                    <div className="mt-0.5 tabular-nums">{formatNum(data.latencyMs)} ms</div>
+                    <div className="mt-1.5 tabular-nums">{formatNum(data.latencyMs)} ms</div>
                   </div>
                 )}
               </div>
@@ -138,33 +147,37 @@ export function PromptDetail({ id }: { id: string }) {
               <div className="grid grid-cols-3 gap-3">
                 <div className="card card-pad">
                   <div className="label">Input</div>
-                  <div className="stat-num mt-1">{formatNum(data.inputTokens)}</div>
-                  <div className="text-xs text-muted tabular-nums">
+                  <div className="stat-num-sm mt-2">{formatNum(data.inputTokens)}</div>
+                  <div className="text-xs text-muted tabular-nums mt-1">
                     {formatUSD(data.inputCost)}
                   </div>
                 </div>
                 <div className="card card-pad">
                   <div className="label">Output</div>
-                  <div className="stat-num mt-1">{formatNum(data.outputTokens)}</div>
-                  <div className="text-xs text-muted tabular-nums">
+                  <div className="stat-num-sm mt-2">{formatNum(data.outputTokens)}</div>
+                  <div className="text-xs text-muted tabular-nums mt-1">
                     {formatUSD(data.outputCost)}
                   </div>
                 </div>
-                <div className="card card-pad">
-                  <div className="label">Total</div>
-                  <div className="stat-num mt-1">{formatUSD(data.totalCost)}</div>
-                  <div className="text-xs text-muted tabular-nums">
+                <div className="card card-pad bg-brand/5 border-brand/30">
+                  <div className="label text-brandLight">Total</div>
+                  <div className="stat-num-sm mt-2 gradient-text">{formatUSD(data.totalCost)}</div>
+                  <div className="text-xs text-muted tabular-nums mt-1">
                     {formatNum(data.totalTokens)} tokens
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <span className="chip capitalize">{data.category}</span>
-                <span className="chip capitalize">{data.complexity}</span>
+                <span className={`chip capitalize ${CATEGORY_CHIP[data.category]}`}>
+                  {data.category}
+                </span>
+                <span className={`chip capitalize ${COMPLEXITY_CHIP[data.complexity]}`}>
+                  {data.complexity}
+                </span>
                 <span className="chip tabular-nums">score {data.complexityScore.toFixed(0)}</span>
                 {data.potentialSavedCost > 0 && (
-                  <span className="chip border-good/40 text-good">
+                  <span className="chip chip-good">
                     save −{formatUSD(data.potentialSavedCost)}
                   </span>
                 )}
@@ -184,7 +197,7 @@ export function PromptDetail({ id }: { id: string }) {
               )}
 
               <div>
-                <div className="label mb-2">Characteristics</div>
+                <div className="label mb-3">Characteristics</div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs tabular-nums">
                   <Row label="Words" value={formatNum(data.characteristics.wordCount)} />
                   <Row label="Sentences" value={formatNum(data.characteristics.sentenceCount)} />
@@ -229,18 +242,18 @@ export function PromptDetail({ id }: { id: string }) {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between border-b border-border py-1">
+    <div className="flex justify-between border-b border-border py-1.5">
       <span className="text-muted">{label}</span>
-      <span>{value}</span>
+      <span className="text-ink">{value}</span>
     </div>
   );
 }
 
 function Flag({ label, on }: { label: string; on: boolean }) {
   return (
-    <div className="flex justify-between border-b border-border py-1">
+    <div className="flex justify-between border-b border-border py-1.5">
       <span className="text-muted">{label}</span>
-      <span className={on ? 'text-good' : 'text-muted'}>{on ? 'yes' : 'no'}</span>
+      <span className={on ? 'text-good font-semibold' : 'text-muted'}>{on ? 'yes' : 'no'}</span>
     </div>
   );
 }

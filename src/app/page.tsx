@@ -7,6 +7,7 @@ import { ComplexityChart } from '@/components/ComplexityChart';
 import { CategoryChart } from '@/components/CategoryChart';
 import { ModelBreakdown } from '@/components/ModelBreakdown';
 import { PeriodSelect } from '@/components/PeriodSelect';
+import { EmptyState } from '@/components/EmptyState';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,14 +31,14 @@ interface PromptsListResponse {
 }
 
 const CATEGORY_CHIP: Record<Category, string> = {
-  factual: 'bg-brand2/10 text-brand2 border-brand2/30',
-  reasoning: 'bg-brand/10 text-brand border-brand/30',
-  creative: 'bg-pink-500/10 text-pink-300 border-pink-400/30',
-  code: 'bg-good/10 text-good border-good/30',
-  analytical: 'bg-warn/10 text-warn border-warn/30',
-  conversational: 'bg-blue-500/10 text-blue-300 border-blue-400/30',
-  instructional: 'bg-violet-500/10 text-violet-300 border-violet-400/30',
-  other: 'bg-panel2 text-muted border-border',
+  factual: 'chip-teal',
+  reasoning: 'chip-blue',
+  creative: 'chip-pink',
+  code: 'chip-lime',
+  analytical: 'chip-amber',
+  conversational: 'chip-brand',
+  instructional: 'chip-indigo',
+  other: 'chip-rose',
 };
 
 function formatUSD(n: number): string {
@@ -78,6 +79,111 @@ async function loadRecent(): Promise<PromptsListResponse | null> {
   }
 }
 
+interface PreviewItem {
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  iconClass: string;
+}
+
+function PreviewCard({ item }: { item: PreviewItem }) {
+  return (
+    <div className="card card-pad text-left">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${item.iconClass}`}>
+        {item.icon}
+      </div>
+      <div className="font-semibold text-sm">{item.title}</div>
+      <div className="text-xs text-muted mt-1.5 leading-relaxed">{item.desc}</div>
+    </div>
+  );
+}
+
+function WelcomeEmpty() {
+  const previews: PreviewItem[] = [
+    {
+      title: 'Pinpoint cost drivers',
+      desc: 'Find the top apps, models, and prompts that are burning your AI budget.',
+      icon: (
+        <svg
+          viewBox="0 0 24 24"
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden
+        >
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" strokeLinecap="round" />
+        </svg>
+      ),
+      iconClass: 'bg-blue/15 border border-blue/30 text-blue',
+    },
+    {
+      title: 'Get dollar-impact actions',
+      desc: 'Ranked recommendations with concrete savings — caching, model routing, output caps.',
+      icon: (
+        <svg
+          viewBox="0 0 24 24"
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden
+        >
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points="16 7 22 7 22 13" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ),
+      iconClass: 'bg-good/15 border border-good/30 text-good',
+    },
+    {
+      title: 'Optimize prompts in real time',
+      desc: 'Paste any prompt — see categorization, complexity, and a leaner rewrite.',
+      icon: (
+        <svg
+          viewBox="0 0 24 24"
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden
+        >
+          <path d="M12 20h9" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+      iconClass: 'bg-brand/15 border border-brand/30 text-brandLight',
+    },
+  ];
+
+  return (
+    <EmptyState
+      title="Welcome to AI FinOps"
+      subtitle="Connect a provider or wire the SDK into your apps to start tracking AI cost. We'll show you exactly where the spend is going and how to reduce it."
+      actions={
+        <>
+          <Link href="/setup" className="btn-primary">
+            Run setup wizard <span aria-hidden>→</span>
+          </Link>
+          <Link href="/studio" className="btn">
+            View Studio
+          </Link>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
+        {previews.map((p) => (
+          <PreviewCard key={p.title} item={p} />
+        ))}
+      </div>
+    </EmptyState>
+  );
+}
+
 export default async function DashboardPage({
   searchParams,
 }: {
@@ -87,13 +193,14 @@ export default async function DashboardPage({
   const period = VALID_PERIODS.has(periodParam) ? periodParam : '7d';
 
   const [stats, recent] = await Promise.all([loadStats(period), loadRecent()]);
+  const isEmpty = stats !== null && stats.totals.calls === 0;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between fade-up">
         <div>
-          <h1 className="text-xl font-semibold">Dashboard</h1>
-          <p className="text-sm text-muted mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-muted mt-1">
             Token usage, cost, and optimization opportunities across your AI stack.
           </p>
         </div>
@@ -104,6 +211,8 @@ export default async function DashboardPage({
         <div className="card card-pad text-sm text-muted">
           Unable to load stats. Make sure the API is reachable.
         </div>
+      ) : isEmpty ? (
+        <WelcomeEmpty />
       ) : (
         <>
           <StatsCards totals={stats.totals} />
@@ -125,57 +234,57 @@ export default async function DashboardPage({
         </>
       )}
 
-      <div className="card">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-          <div>
-            <div className="label">Recent prompts</div>
-            <div className="text-xs text-muted mt-0.5">Latest 10 logged calls</div>
+      {!isEmpty && stats && (
+        <div className="card fade-up-delay-3">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div>
+              <div className="label">Recent prompts</div>
+              <div className="text-xs text-muted mt-1">Latest 10 logged calls</div>
+            </div>
+            <Link href="/prompts" className="btn">
+              View all <span aria-hidden>→</span>
+            </Link>
           </div>
-          <Link href="/prompts" className="btn">
-            View all <span aria-hidden>→</span>
-          </Link>
-        </div>
-        {!recent || recent.items.length === 0 ? (
-          <div className="p-8 text-center text-sm text-muted">
-            No prompts logged yet. Install the SDK to start tracking.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Model</th>
-                  <th>Category</th>
-                  <th className="text-right">Tokens</th>
-                  <th className="text-right">Cost</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.items.map((r) => (
-                  <tr key={r.id}>
-                    <td className="text-xs text-muted whitespace-nowrap">
-                      {formatTime(r.timestamp)}
-                    </td>
-                    <td className="font-mono text-xs">{r.model}</td>
-                    <td>
-                      <span
-                        className={`chip border capitalize ${CATEGORY_CHIP[r.category] ?? ''}`}
-                      >
-                        {r.category}
-                      </span>
-                    </td>
-                    <td className="text-right tabular-nums">
-                      {(r.inputTokens + r.outputTokens).toLocaleString()}
-                    </td>
-                    <td className="text-right tabular-nums">{formatUSD(r.totalCost)}</td>
+          {!recent || recent.items.length === 0 ? (
+            <div className="p-10 text-center text-sm text-muted">
+              No prompts logged yet. Install the SDK to start tracking.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Time</th>
+                    <th>Model</th>
+                    <th>Category</th>
+                    <th className="text-right">Tokens</th>
+                    <th className="text-right">Cost</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+                </thead>
+                <tbody>
+                  {recent.items.map((r) => (
+                    <tr key={r.id}>
+                      <td className="text-xs text-muted whitespace-nowrap">
+                        {formatTime(r.timestamp)}
+                      </td>
+                      <td className="font-mono text-xs">{r.model}</td>
+                      <td>
+                        <span className={`chip capitalize ${CATEGORY_CHIP[r.category] ?? ''}`}>
+                          {r.category}
+                        </span>
+                      </td>
+                      <td className="text-right tabular-nums">
+                        {(r.inputTokens + r.outputTokens).toLocaleString()}
+                      </td>
+                      <td className="text-right tabular-nums font-semibold">{formatUSD(r.totalCost)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

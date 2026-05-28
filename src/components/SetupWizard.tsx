@@ -10,6 +10,7 @@ interface ProviderDef {
   blurb: string;
   keyPlaceholder: string;
   helpText: string;
+  accent: 'amber' | 'good' | 'blue' | 'brand2';
 }
 
 const PROVIDERS: ProviderDef[] = [
@@ -19,6 +20,7 @@ const PROVIDERS: ProviderDef[] = [
     blurb: 'Pulls per-day, per-model usage from the organization usage report.',
     keyPlaceholder: 'sk-ant-admin-...',
     helpText: 'Requires an admin API key from the Anthropic console.',
+    accent: 'amber',
   },
   {
     id: 'openai',
@@ -26,6 +28,7 @@ const PROVIDERS: ProviderDef[] = [
     blurb: 'Pulls organization-wide usage and billing data.',
     keyPlaceholder: 'sk-...',
     helpText: 'Requires an organization-scoped admin API key.',
+    accent: 'good',
   },
   {
     id: 'google',
@@ -33,6 +36,7 @@ const PROVIDERS: ProviderDef[] = [
     blurb: 'Pulls Gemini usage from Cloud Billing exports.',
     keyPlaceholder: 'AIza...',
     helpText: 'Requires a service account key with billing.viewer.',
+    accent: 'blue',
   },
   {
     id: 'azure',
@@ -40,8 +44,16 @@ const PROVIDERS: ProviderDef[] = [
     blurb: 'Pulls usage from Azure Cost Management for OpenAI deployments.',
     keyPlaceholder: 'Cost Management bearer token',
     helpText: 'Requires a subscription-scoped reader token.',
+    accent: 'brand2',
   },
 ];
+
+const ACCENT_CLASSES: Record<ProviderDef['accent'], { bg: string; border: string; text: string }> = {
+  amber: { bg: 'bg-amber/10', border: 'border-amber/30', text: 'text-amber' },
+  good: { bg: 'bg-good/10', border: 'border-good/30', text: 'text-good' },
+  blue: { bg: 'bg-blue/10', border: 'border-blue/30', text: 'text-blue' },
+  brand2: { bg: 'bg-brand2/10', border: 'border-brand2/30', text: 'text-brand2' },
+};
 
 interface ConnectedCredential {
   id: string;
@@ -62,7 +74,7 @@ export function SetupWizard() {
   const [connected, setConnected] = useState<ConnectedCredential[]>([]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <StepIndicator step={step} />
       {step === 1 && <Step1Welcome onNext={() => setStep(2)} onSkip={() => router.push('/')} />}
       {step === 2 && (
@@ -105,18 +117,30 @@ function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
         return (
           <div key={it.n} className="flex items-center gap-2">
             <div
-              className={`flex items-center gap-2 px-2.5 py-1 rounded-lg border ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-medium transition-all duration-150 ${
                 active
-                  ? 'border-brand text-ink bg-brand/10'
+                  ? 'border-brand/40 text-brandLight bg-brand/10 shadow-glow'
                   : done
                     ? 'border-good/40 text-good bg-good/5'
                     : 'border-border text-muted'
               }`}
             >
-              <span className="tabular-nums font-mono">{it.n}</span>
+              <span
+                className={`tabular-nums w-5 h-5 rounded-md flex items-center justify-center ${
+                  active
+                    ? 'bg-brand-gradient text-white'
+                    : done
+                      ? 'bg-good text-white'
+                      : 'bg-panel2 text-muted'
+                }`}
+              >
+                {done ? '✓' : it.n}
+              </span>
               <span>{it.label}</span>
             </div>
-            {i < items.length - 1 && <span className="text-muted">—</span>}
+            {i < items.length - 1 && (
+              <span className={`h-px w-6 ${done ? 'bg-good/40' : 'bg-border'}`} aria-hidden />
+            )}
           </div>
         );
       })}
@@ -126,38 +150,49 @@ function StepIndicator({ step }: { step: 1 | 2 | 3 }) {
 
 function Step1Welcome({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
   return (
-    <div className="card card-pad space-y-4">
-      <p className="text-sm leading-relaxed">
-        AI FinOps tracks LLM token usage and cost across your applications, surfaces why your AI
-        bill is what it is, and recommends specific dollar-impact actions. Setup takes about 2
-        minutes.
-      </p>
-
-      <div>
-        <div className="label mb-2">What it does</div>
-        <ul className="text-xs text-muted space-y-1.5 list-disc list-inside leading-relaxed">
-          <li>Pulls historical usage from provider admin APIs (Anthropic, OpenAI, Google, Azure).</li>
-          <li>Captures per-prompt detail from apps that wrap their calls with the AI FinOps SDK.</li>
-          <li>Categorizes prompts, finds cost drivers, and ranks the actions that lower the bill.</li>
-        </ul>
+    <div className="card card-pad space-y-5 fade-up">
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-brand-gradient flex items-center justify-center shrink-0 shadow-glow">
+          <svg viewBox="0 0 24 24" className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="text-xl font-bold tracking-tight">Welcome to AI FinOps</h2>
+          <p className="text-sm text-inkDim leading-relaxed mt-2">
+            AI FinOps tracks LLM token usage and cost across your applications, surfaces why your AI
+            bill is what it is, and recommends specific dollar-impact actions. Setup takes about 2
+            minutes.
+          </p>
+        </div>
       </div>
 
-      <div>
-        <div className="label mb-2">What it does not do</div>
-        <ul className="text-xs text-muted space-y-1.5 list-disc list-inside leading-relaxed">
-          <li>It cannot magically scan AI usage that does not flow through a provider you connect.</li>
-          <li>Per-prompt analysis needs the SDK or a CSV export — admin APIs return aggregates.</li>
-        </ul>
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-panel2 border border-border rounded-xl p-4">
+          <div className="label mb-2 text-good">What it does</div>
+          <ul className="text-xs text-inkDim space-y-2 leading-relaxed">
+            <li className="flex gap-2"><span className="text-good shrink-0 mt-0.5" aria-hidden>→</span>Pulls historical usage from provider admin APIs (Anthropic, OpenAI, Google, Azure).</li>
+            <li className="flex gap-2"><span className="text-good shrink-0 mt-0.5" aria-hidden>→</span>Captures per-prompt detail from apps that wrap their calls with the AI FinOps SDK.</li>
+            <li className="flex gap-2"><span className="text-good shrink-0 mt-0.5" aria-hidden>→</span>Categorizes prompts, finds cost drivers, and ranks the actions that lower the bill.</li>
+          </ul>
+        </div>
+        <div className="bg-panel2 border border-border rounded-xl p-4">
+          <div className="label mb-2 text-warn">What it does not do</div>
+          <ul className="text-xs text-inkDim space-y-2 leading-relaxed">
+            <li className="flex gap-2"><span className="text-warn shrink-0 mt-0.5" aria-hidden>•</span>It cannot magically scan AI usage that does not flow through a provider you connect.</li>
+            <li className="flex gap-2"><span className="text-warn shrink-0 mt-0.5" aria-hidden>•</span>Per-prompt analysis needs the SDK or a CSV export — admin APIs return aggregates.</li>
+          </ul>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3 pt-2">
-        <button type="button" className="btn btn-primary" onClick={onNext}>
-          Get Started
+      <div className="flex items-center gap-3 pt-1">
+        <button type="button" className="btn-primary" onClick={onNext}>
+          Get Started <span aria-hidden>→</span>
         </button>
         <button
           type="button"
           onClick={onSkip}
-          className="text-xs text-muted hover:text-ink underline-offset-2 hover:underline"
+          className="text-xs text-muted hover:text-ink underline-offset-2 hover:underline transition-colors"
         >
           Skip setup, just show me the dashboard
         </button>
@@ -178,10 +213,10 @@ function Step2Connect({
   onSkip: () => void;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 fade-up">
       <div className="card card-pad">
         <div className="label">Connect providers</div>
-        <div className="text-xs text-muted mt-0.5">
+        <div className="text-xs text-inkDim mt-1.5 leading-relaxed">
           Paste an admin API key for each provider you use. Keys are encrypted at rest with
           AES-256-GCM and never leave this machine.
         </div>
@@ -200,13 +235,13 @@ function Step2Connect({
       })}
 
       <div className="flex items-center gap-3 pt-2">
-        <button type="button" className="btn btn-primary" onClick={onNext}>
-          Next
+        <button type="button" className="btn-primary" onClick={onNext}>
+          Next <span aria-hidden>→</span>
         </button>
         <button
           type="button"
           onClick={onSkip}
-          className="text-xs text-muted hover:text-ink underline-offset-2 hover:underline"
+          className="text-xs text-muted hover:text-ink underline-offset-2 hover:underline transition-colors"
         >
           Skip — I&apos;ll add connectors later
         </button>
@@ -229,6 +264,7 @@ function ProviderRow({
   const [label, setLabel] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const accent = ACCENT_CLASSES[def.accent];
 
   async function connect(e: React.FormEvent) {
     e.preventDefault();
@@ -270,15 +306,24 @@ function ProviderRow({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="text-left flex-1 min-w-0"
+          className="text-left flex-1 min-w-0 flex items-start gap-3"
         >
-          <div className="flex items-center gap-2">
-            <div className="font-medium">{def.name}</div>
-            {connected && (
-              <span className="chip border-good/40 text-good">Connected</span>
-            )}
+          <div
+            className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${accent.bg} ${accent.border}`}
+          >
+            <svg viewBox="0 0 24 24" className={`w-5 h-5 ${accent.text}`} fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
           </div>
-          <div className="text-xs text-muted mt-0.5">{def.blurb}</div>
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="font-semibold">{def.name}</div>
+              {connected && (
+                <span className="chip chip-good">Connected</span>
+              )}
+            </div>
+            <div className="text-xs text-muted mt-1">{def.blurb}</div>
+          </div>
         </button>
         <button
           type="button"
@@ -291,9 +336,9 @@ function ProviderRow({
       </div>
 
       {open && (
-        <form onSubmit={connect} className="mt-4 space-y-3">
+        <form onSubmit={connect} className="mt-5 space-y-3">
           <div>
-            <label className="label block mb-1">API key</label>
+            <label className="label block mb-2">API key</label>
             <input
               type="password"
               autoComplete="off"
@@ -302,10 +347,10 @@ function ProviderRow({
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
             />
-            <div className="text-xs text-muted mt-1">{def.helpText}</div>
+            <div className="text-xs text-muted mt-2">{def.helpText}</div>
           </div>
           <div>
-            <label className="label block mb-1">Label (optional)</label>
+            <label className="label block mb-2">Label (optional)</label>
             <input
               className="input"
               placeholder="prod, staging, team-x"
@@ -318,7 +363,7 @@ function ProviderRow({
             <button
               type="submit"
               disabled={saving || !apiKey.trim()}
-              className="btn btn-primary disabled:opacity-50"
+              className="btn-primary disabled:opacity-50"
             >
               {saving ? 'Connecting...' : 'Connect'}
             </button>
@@ -422,10 +467,10 @@ function Step3Import({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 fade-up">
       <div className="card card-pad">
         <div className="label">Run your first import</div>
-        <div className="text-xs text-muted mt-0.5">
+        <div className="text-xs text-inkDim mt-1.5 leading-relaxed">
           Pull historical usage from the providers you connected. You can re-run this later from
           the Connectors page.
         </div>
@@ -443,14 +488,14 @@ function Step3Import({
           <div key={c.id} className="card card-pad">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="font-medium capitalize">{c.provider}</div>
+                <div className="font-semibold capitalize">{c.provider}</div>
                 {c.label && <div className="text-xs text-muted mt-0.5">{c.label}</div>}
               </div>
               <button
                 type="button"
                 onClick={() => runImport(c)}
                 disabled={outcome.status === 'running'}
-                className="btn btn-primary disabled:opacity-50"
+                className="btn-primary disabled:opacity-50"
               >
                 {outcome.status === 'running' ? 'Importing...' : 'Run import now'}
               </button>
@@ -462,8 +507,8 @@ function Step3Import({
 
       <div className="card card-pad space-y-3">
         <div>
-          <div className="font-medium">CSV import</div>
-          <div className="text-xs text-muted mt-0.5">
+          <div className="font-semibold">CSV import</div>
+          <div className="text-xs text-muted mt-1">
             Paste a CSV export with columns like timestamp, model, input_tokens, output_tokens,
             total_cost. Header row required.
           </div>
@@ -479,7 +524,7 @@ function Step3Import({
             type="button"
             onClick={runCsv}
             disabled={csvOutcome.status === 'running' || !csvText.trim()}
-            className="btn btn-primary disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
           >
             {csvOutcome.status === 'running' ? 'Importing...' : 'Import CSV'}
           </button>
@@ -493,8 +538,8 @@ function Step3Import({
       </div>
 
       <div className="flex items-center gap-3 pt-2">
-        <button type="button" className="btn btn-primary" onClick={onFinish}>
-          Finish
+        <button type="button" className="btn-primary" onClick={onFinish}>
+          Finish <span aria-hidden>→</span>
         </button>
         <button type="button" className="btn" onClick={onBack}>
           Back
@@ -519,7 +564,7 @@ function ImportOutcomeView({ outcome }: { outcome: ImportOutcome }) {
   }
   return (
     <div className="mt-3 space-y-1.5">
-      <div className="text-xs text-good">
+      <div className="text-xs text-good font-semibold">
         Imported {outcome.recordsImported ?? 0} record{outcome.recordsImported === 1 ? '' : 's'}.
       </div>
       {outcome.warnings && outcome.warnings.length > 0 && (

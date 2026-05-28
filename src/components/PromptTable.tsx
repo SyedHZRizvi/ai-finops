@@ -30,22 +30,22 @@ const CATEGORIES: Category[] = [
 
 const COMPLEXITIES: Complexity[] = ['simple', 'moderate', 'complex', 'multidimensional'];
 
-const CATEGORY_CHIP: Record<Category, string> = {
-  factual: 'bg-brand2/10 text-brand2 border-brand2/30',
-  reasoning: 'bg-brand/10 text-brand border-brand/30',
-  creative: 'bg-pink-500/10 text-pink-300 border-pink-400/30',
-  code: 'bg-good/10 text-good border-good/30',
-  analytical: 'bg-warn/10 text-warn border-warn/30',
-  conversational: 'bg-blue-500/10 text-blue-300 border-blue-400/30',
-  instructional: 'bg-violet-500/10 text-violet-300 border-violet-400/30',
-  other: 'bg-panel2 text-muted border-border',
+export const CATEGORY_CHIP: Record<Category, string> = {
+  factual: 'chip-teal',
+  reasoning: 'chip-blue',
+  creative: 'chip-pink',
+  code: 'chip-lime',
+  analytical: 'chip-amber',
+  conversational: 'chip-brand',
+  instructional: 'chip-indigo',
+  other: 'chip-rose',
 };
 
-const COMPLEXITY_CHIP: Record<Complexity, string> = {
-  simple: 'bg-good/10 text-good border-good/30',
-  moderate: 'bg-brand2/10 text-brand2 border-brand2/30',
-  complex: 'bg-warn/10 text-warn border-warn/30',
-  multidimensional: 'bg-bad/10 text-bad border-bad/30',
+export const COMPLEXITY_CHIP: Record<Complexity, string> = {
+  simple: 'chip-good',
+  moderate: 'chip-blue',
+  complex: 'chip-warn',
+  multidimensional: 'chip-bad',
 };
 
 function formatUSD(n: number): string {
@@ -126,10 +126,10 @@ export function PromptTable({
 
   return (
     <div className="space-y-4">
-      <div className="card card-pad">
+      <div className="card card-pad fade-up">
         <form onSubmit={onSubmit} className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
           <div className="md:col-span-2">
-            <label className="label block mb-1">Search</label>
+            <label className="label block mb-2">Search</label>
             <input
               type="text"
               value={search}
@@ -139,7 +139,7 @@ export function PromptTable({
             />
           </div>
           <div>
-            <label className="label block mb-1">Category</label>
+            <label className="label block mb-2">Category</label>
             <select
               className="input"
               value={sp.get('category') ?? ''}
@@ -154,7 +154,7 @@ export function PromptTable({
             </select>
           </div>
           <div>
-            <label className="label block mb-1">Complexity</label>
+            <label className="label block mb-2">Complexity</label>
             <select
               className="input"
               value={sp.get('complexity') ?? ''}
@@ -169,7 +169,7 @@ export function PromptTable({
             </select>
           </div>
           <div>
-            <label className="label block mb-1">Model</label>
+            <label className="label block mb-2">Model</label>
             <select
               className="input"
               value={sp.get('model') ?? ''}
@@ -184,7 +184,7 @@ export function PromptTable({
             </select>
           </div>
           <div className="flex gap-2">
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn-primary">
               Apply
             </button>
             <button
@@ -201,20 +201,36 @@ export function PromptTable({
         </form>
       </div>
 
-      <div className="card">
+      <div className="card fade-up-delay-1">
         {total === 0 ? (
-          <div className="p-10 text-center">
-            <div className="text-sm font-medium mb-1">No prompts logged yet</div>
-            <div className="text-xs text-muted max-w-md mx-auto">
+          <div className="p-12 text-center">
+            <div className="mx-auto w-16 h-16 rounded-2xl bg-brand-gradient shadow-glow flex items-center justify-center mb-4">
+              <svg
+                viewBox="0 0 24 24"
+                className="w-7 h-7 text-white"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden
+              >
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="9" y1="15" x2="15" y2="15" strokeLinecap="round" />
+              </svg>
+            </div>
+            <div className="text-lg font-bold gradient-text mb-2">No prompts logged yet</div>
+            <div className="text-sm text-inkDim max-w-md mx-auto leading-relaxed">
               Install the AI FinOps SDK and start logging your LLM calls to see them here.
               Prompts will be auto-categorized and analyzed for savings.
             </div>
-            <Link
-              href="https://github.com/anthropics/ai-finops"
-              className="btn mt-4 inline-flex"
-            >
-              SDK docs <span aria-hidden>→</span>
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-3 mt-5">
+              <Link href="/setup" className="btn-primary">
+                Run setup wizard <span aria-hidden>→</span>
+              </Link>
+              <Link href="/studio" className="btn">
+                Try Studio
+              </Link>
+            </div>
           </div>
         ) : (
           <>
@@ -244,25 +260,21 @@ export function PromptTable({
                       </td>
                       <td className="font-mono text-xs whitespace-nowrap">{r.model}</td>
                       <td>
-                        <span
-                          className={`chip border capitalize ${CATEGORY_CHIP[r.category] ?? ''}`}
-                        >
+                        <span className={`chip capitalize ${CATEGORY_CHIP[r.category] ?? ''}`}>
                           {r.category}
                         </span>
                       </td>
                       <td>
-                        <span
-                          className={`chip border capitalize ${COMPLEXITY_CHIP[r.complexity] ?? ''}`}
-                        >
+                        <span className={`chip capitalize ${COMPLEXITY_CHIP[r.complexity] ?? ''}`}>
                           {r.complexity}
                         </span>
                       </td>
                       <td className="text-right tabular-nums">{formatNum(r.inputTokens)}</td>
                       <td className="text-right tabular-nums">{formatNum(r.outputTokens)}</td>
-                      <td className="text-right tabular-nums">{formatUSD(r.totalCost)}</td>
+                      <td className="text-right tabular-nums font-semibold">{formatUSD(r.totalCost)}</td>
                       <td className="text-right tabular-nums">
                         {r.potentialSavedCost > 0 ? (
-                          <span className="text-good">−{formatUSD(r.potentialSavedCost)}</span>
+                          <span className="text-good font-semibold">−{formatUSD(r.potentialSavedCost)}</span>
                         ) : (
                           <span className="text-muted">—</span>
                         )}
@@ -272,7 +284,7 @@ export function PromptTable({
                 </tbody>
               </table>
             </div>
-            <div className="flex items-center justify-between px-4 py-3 text-xs text-muted">
+            <div className="flex items-center justify-between px-6 py-4 text-xs text-muted border-t border-border">
               <div className="tabular-nums">
                 Showing {offset + 1}–{Math.min(offset + items.length, total)} of {formatNum(total)}
               </div>

@@ -64,9 +64,9 @@ export default async function PromptsPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Prompts</h1>
-        <p className="text-sm text-muted mt-0.5">
+      <div className="fade-up">
+        <h1 className="text-2xl font-bold tracking-tight">Prompts</h1>
+        <p className="text-sm text-muted mt-1">
           Browse and filter every logged prompt. Click a row to inspect.
         </p>
       </div>
