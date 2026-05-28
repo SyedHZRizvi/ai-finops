@@ -41,6 +41,9 @@ model PromptLog {
   // the actual request_count from the provider. Stats and insights use
   // sum(callCount) where they previously used count(*).
   callCount            Int      @default(1)
+  // Comma-separated user-supplied tags for slicing reports
+  // (e.g., "team-marketing,prod,v2"). Free-form, not normalized.
+  tags                 String?
 
   @@index([timestamp])
   @@index([category])
@@ -113,4 +116,27 @@ model Setting {
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt
+}
+
+// Spend control. One row per scope.
+//   scope = 'global'           → enterprise-wide monthly cap
+//   scope = 'app'              → cap for a specific appName
+//   scope = 'user'             → cap for a specific userId
+model Budget {
+  id           String   @id @default(cuid())
+  scope        String // 'global' | 'app' | 'user'
+  scopeValue   String? // null for global; appName / userId otherwise
+  monthlyLimit Float
+  currency     String   @default("USD")
+  alertAt75    Boolean  @default(true)
+  alertAt90    Boolean  @default(true)
+  alertAt100   Boolean  @default(true)
+  webhookUrl   String? // optional Slack / Teams webhook for budget alerts
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([scope, scopeValue])
+  @@index([scope])
+  @@index([isActive])
 }
