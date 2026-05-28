@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "AI FinOps Optimizer",
+  "version": "0.1.0",
+  "description": "Optimize prompts on ChatGPT, Claude, Gemini and Perplexity. Sends to your local AI FinOps dashboard.",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://www.perplexity.ai/*",
+    "https://perplexity.ai/*",
+    "http://localhost:3000/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [{
+    "matches": [
+      "https://chat.openai.com/*",
+      "https://chatgpt.com/*",
+      "https://claude.ai/*",
+      "https://gemini.google.com/*",
+      "https://www.perplexity.ai/*",
+      "https://perplexity.ai/*"
+    ],
+    "js": ["content.js"],
+    "css": ["styles.css"],
+    "run_at": "document_idle"
+  }],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AI FinOps"
+  },
+  "icons": {
+    "16": "icons/icon.svg",
+    "48": "icons/icon.svg",
+    "128": "icons/icon.svg"
+  }
+}

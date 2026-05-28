@@ -1,0 +1,26 @@
+node_modules
+.next
+.env
+.env.local
+.env.production
+*.log
+.DS_Store
+dist
+build
+coverage
+prisma/*.db
+prisma/*.db-journal
+sdk/dist
+sdk/node_modules
+
+# Electron build artifacts
+dist-electron
+release
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# OS
+Thumbs.db

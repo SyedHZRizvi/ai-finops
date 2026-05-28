@@ -1,0 +1,25 @@
+# Render Blueprint — one-click deploy. Visit https://render.com/deploy and
+# point it at your repo, or use the Dashboard to import this file directly.
+# Free tier supports the Docker runtime with a 1 GB persistent disk.
+
+services:
+  - type: web
+    name: ai-finops
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    disk:
+      name: ai-finops-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:/data/ai-finops.db
+      - key: FINOPS_ENCRYPTION_KEY
+        generateValue: true   # Render auto-generates a 64-char secret
+      - key: FINOPS_INGEST_TOKEN
+        generateValue: true
+    healthCheckPath: /api/pricing

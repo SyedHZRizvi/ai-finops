@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AI FinOps</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body {
+    width: 320px;
+    margin: 0;
+    padding: 0;
+    background: #0f0f17;
+    color: #e9e7ef;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 13px;
+  }
+  .wrap { padding: 14px 14px 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  header {
+    display: flex; align-items: center; gap: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .logo {
+    width: 28px; height: 28px; border-radius: 8px;
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #c084fc 100%);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 700; box-shadow: 0 4px 12px rgba(124,58,237,0.4);
+  }
+  .title { font-weight: 600; }
+  .sub { color: #a59ec2; font-size: 11px; margin-top: 1px; }
+  label {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: #a59ec2;
+  }
+  input[type="text"], input[type="password"] {
+    background: #16131f;
+    color: #ece9f5;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+  }
+  input:focus { border-color: rgba(168, 85, 247, 0.6); box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.18); }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row-end { justify-content: flex-end; }
+  .btn {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.04);
+    color: #e9e7ef;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .btn:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.18); }
+  .btn-primary {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    border-color: transparent;
+    color: #fff;
+  }
+  .status {
+    font-size: 11.5px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #cfcce0;
+    min-height: 18px;
+  }
+  .status.ok { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.35); color: #b6f3c9; }
+  .status.err { background: rgba(220,38,38,0.12); border-color: rgba(248,113,113,0.4); color: #fecaca; }
+  .footer {
+    font-size: 11px; color: #a59ec2; line-height: 1.45;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-top: 8px;
+  }
+  a { color: #c4b5fd; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span class="logo">F</span>
+      <div>
+        <div class="title">AI FinOps</div>
+        <div class="sub">Optimize, log, save tokens.</div>
+      </div>
+    </header>
+
+    <label>
+      Base URL
+      <input id="baseUrl" type="text" placeholder="http://localhost:3000" autocomplete="off" spellcheck="false" />
+    </label>
+
+    <label>
+      Ingest token (optional)
+      <input id="ingestToken" type="password" placeholder="Bearer token" autocomplete="off" spellcheck="false" />
+    </label>
+
+    <div class="row row-end">
+      <button id="save" class="btn">Save</button>
+      <button id="test" class="btn btn-primary">Test connection</button>
+    </div>
+
+    <div id="status" class="status">Configure your dashboard URL and click Test.</div>
+
+    <div class="row row-end">
+      <a id="openDash" href="#" target="_blank" rel="noopener">Open dashboard &rarr;</a>
+    </div>
+
+    <div class="footer">
+      Click the purple bolt on ChatGPT, Claude, Gemini, or Perplexity to optimize your prompt before sending. See INSTALL.md.
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

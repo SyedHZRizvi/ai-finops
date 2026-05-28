@@ -1,0 +1,37 @@
+{
+  "name": "@ai-finops/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript client SDK for the AI FinOps dashboard — log LLM token usage, cost, and optimization opportunities from your app.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "keywords": [
+    "llm",
+    "finops",
+    "openai",
+    "anthropic",
+    "cost",
+    "observability"
+  ]
+}

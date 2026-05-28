@@ -1,0 +1,52 @@
+# Fly.io deploy config. After `fly auth login`:
+#   fly launch --copy-config --no-deploy
+#   fly secrets set FINOPS_ENCRYPTION_KEY=$(openssl rand -hex 32) FINOPS_INGEST_TOKEN=$(openssl rand -hex 32)
+#   fly volumes create ai_finops_data --region iad --size 1
+#   fly deploy
+
+app = "ai-finops"
+primary_region = "iad"
+kill_signal = "SIGINT"
+kill_timeout = "5s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  DATABASE_URL = "file:/data/ai-finops.db"
+
+[mounts]
+  source = "ai_finops_data"
+  destination = "/data"
+
+[[services]]
+  internal_port = 3000
+  protocol = "tcp"
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+    force_https = true
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [services.concurrency]
+    type = "requests"
+    soft_limit = 80
+    hard_limit = 200
+
+[checks]
+  [checks.health]
+    type = "http"
+    interval = "30s"
+    timeout = "3s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/api/pricing"

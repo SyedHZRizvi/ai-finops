@@ -1,0 +1,21 @@
+# Local production smoke test. From the project root:
+#   docker compose up --build
+# Then open http://localhost:3000.
+
+services:
+  ai-finops:
+    build: .
+    image: ai-finops:local
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/data/ai-finops.db
+      - FINOPS_ENCRYPTION_KEY=${FINOPS_ENCRYPTION_KEY:-change_me_to_a_64_char_hex_string_using_openssl_rand_hex_32}
+      - FINOPS_INGEST_TOKEN=${FINOPS_INGEST_TOKEN:-}
+    volumes:
+      - ai-finops-data:/data
+    restart: unless-stopped
+
+volumes:
+  ai-finops-data:

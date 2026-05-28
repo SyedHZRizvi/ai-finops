@@ -1,0 +1,87 @@
+{
+  "name": "ai-finops",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI Financial Ops — track token usage, categorize prompts, and optimize them to reduce LLM cost",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate",
+    "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:3000 && npm run electron:start\"",
+    "electron:start": "tsc -p electron && electron dist-electron/main.js",
+    "electron:build:tsc": "tsc -p electron",
+    "electron:build": "npm run build && npm run electron:build:tsc && electron-builder",
+    "electron:build:mac": "npm run build && npm run electron:build:tsc && electron-builder --mac",
+    "electron:build:win": "npm run build && npm run electron:build:tsc && electron-builder --win",
+    "electron:build:linux": "npm run build && npm run electron:build:tsc && electron-builder --linux"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "gpt-tokenizer": "^2.5.1",
+    "next": "14.2.18",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.13.3",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.18",
+    "postcss": "^8.4.49",
+    "prisma": "^5.22.0",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "wait-on": "^8.0.0"
+  },
+  "build": {
+    "appId": "com.ai-finops.desktop",
+    "productName": "AI FinOps",
+    "directories": {
+      "output": "release",
+      "buildResources": "electron/icons"
+    },
+    "files": [
+      "dist-electron/**/*",
+      ".next/standalone/**/*",
+      ".next/static/**/*",
+      "public/**/*",
+      "prisma/**/*",
+      "node_modules/.prisma/**/*",
+      "node_modules/@prisma/client/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": ".next/static", "to": "app/.next/static" },
+      { "from": "public", "to": "app/public" },
+      { "from": "prisma", "to": "app/prisma" }
+    ],
+    "mac": {
+      "target": ["dmg", "zip"],
+      "icon": "electron/icons/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true
+    },
+    "win": {
+      "target": ["nsis"],
+      "icon": "electron/icons/icon.ico"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "icon": "electron/icons/icon.png",
+      "category": "Utility"
+    }
+  }
+}

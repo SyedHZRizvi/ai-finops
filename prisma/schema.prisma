@@ -1,0 +1,101 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model PromptLog {
+  id                   String   @id @default(cuid())
+  timestamp            DateTime @default(now())
+  appName              String?
+  userId               String?
+  model                String
+  provider             String?
+  promptText           String
+  responseText         String?
+  inputTokens          Int
+  outputTokens         Int
+  totalTokens          Int
+  inputCost            Float
+  outputCost           Float
+  totalCost            Float
+  category             String
+  complexity           String
+  complexityScore      Float
+  dimensions           String
+  characteristics      String
+  latencyMs            Int?
+  metadata             String?
+  potentialSavedTokens Int      @default(0)
+  potentialSavedCost   Float    @default(0)
+
+  @@index([timestamp])
+  @@index([category])
+  @@index([complexity])
+  @@index([model])
+}
+
+model ModelPricingConfig {
+  id              String   @id @default(cuid())
+  model           String   @unique
+  provider        String?
+  inputCostPer1M  Float
+  outputCostPer1M Float
+  contextWindow   Int
+  isActive        Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}
+
+model OptimizationLog {
+  id              String   @id @default(cuid())
+  promptLogId     String?
+  originalPrompt  String
+  optimizedPrompt String
+  originalTokens  Int
+  optimizedTokens Int
+  savedTokens     Int
+  savedCost       Float
+  suggestions     String
+  createdAt       DateTime @default(now())
+}
+
+model Credential {
+  id            String   @id @default(cuid())
+  provider      String   // 'anthropic' | 'openai' | 'google' | 'azure' | 'gateway'
+  label         String?
+  encryptedBlob String   // AES-256-GCM ciphertext, base64
+  iv            String   // base64
+  authTag       String   // base64
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([provider, label])
+  @@index([provider])
+}
+
+model ImportJob {
+  id               String   @id @default(cuid())
+  provider         String
+  startedAt        DateTime @default(now())
+  finishedAt       DateTime?
+  status           String   // 'pending' | 'running' | 'succeeded' | 'failed'
+  recordsImported Int      @default(0)
+  errorMessage     String?
+  rangeFrom        DateTime?
+  rangeTo          DateTime?
+
+  @@index([provider])
+  @@index([status])
+  @@index([startedAt])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
