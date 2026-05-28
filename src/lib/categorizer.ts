@@ -23,12 +23,26 @@ const CODE_KEYWORDS = [
   'return ', 'public ', 'private ', 'interface ', 'export ', 'async ',
 ];
 
-const LANGUAGE_HINTS = [
-  'python', 'javascript', 'typescript', 'java ', 'rust', 'golang', ' go ',
-  'c++', 'c#', 'ruby', 'php', 'kotlin', 'swift', 'react', 'vue', 'angular',
-  'node.js', 'nodejs', 'django', 'flask', 'next.js', 'nextjs', 'sql',
-  'postgres', 'mysql', 'mongodb', 'graphql', 'rest api',
+// Audit L1: language hints must require a strong programming context
+// to avoid false positives like "let's go" or "Java the city". Each entry
+// is paired with a regex requiring the term to appear near a programming
+// keyword (code|function|script|library|framework|api|build|write|run).
+const LANGUAGE_HINTS_STRONG = [
+  // Unambiguous — these are programming-only terms.
+  'python', 'javascript', 'typescript', 'rust', 'golang', 'kotlin',
+  'swift', 'node.js', 'nodejs', 'django', 'flask', 'next.js', 'nextjs',
+  'graphql', 'rest api', 'postgres', 'mysql', 'mongodb',
+  // C++/C# unambiguous via the special chars.
+  'c++', 'c#',
 ];
+
+// Audit L1: ambiguous tokens require a programming-context neighbor.
+const AMBIGUOUS_LANGUAGE_HINTS = [
+  ' go ', 'java ', 'ruby', 'php', 'sql', 'react', 'vue', 'angular',
+];
+
+const PROGRAMMING_CONTEXT_RE =
+  /\b(code|coding|function|class|method|script|library|framework|api|build|compile|deploy|programming|developer|developing|debug|refactor|implement|module|package|import|repo|repository|commit|deploy|backend|frontend)\b/;
 
 const REDUNDANCY_FILLERS = [
   'as i mentioned earlier', 'as you know', 'basically', 'essentially',
@@ -56,9 +70,17 @@ function countQuestions(text: string): number {
   const lines = text.split(/\n+/);
   let leadingQuestionWords = 0;
   for (const line of lines) {
-    const first = line.trim().split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, '');
+    const trimmed = line.trim();
+    const first = trimmed.split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, '');
+    // Audit L2: a leading question-word only counts as a question when the
+    // line actually ends with "?". Otherwise "Is is a verb." (declarative)
+    // would be counted as a question. Strong question words (what/who/etc)
+    // still count without a "?" since they're rarely declarative.
+    const STRONG_Q = ['what', 'who', 'when', 'where', 'why', 'how', 'which'];
     if (first && QUESTION_WORDS.includes(first)) {
-      leadingQuestionWords += 1;
+      if (STRONG_Q.includes(first) || trimmed.endsWith('?')) {
+        leadingQuestionWords += 1;
+      }
     }
   }
   // de-overcount: a question line typically has both a leading word AND a "?"
@@ -172,7 +194,14 @@ export function categorize(text: string): Category {
   const chars = extractCharacteristics(text);
   const verbs = imperativeSet(text);
 
-  const mentionsLanguage = LANGUAGE_HINTS.some((l) => lower.includes(l));
+  // Audit L1: strong language hints alone → code. Ambiguous ones require
+  // a programming-context neighbor so "let's go" / "Java the city" don't
+  // misclassify.
+  const mentionsStrongLanguage = LANGUAGE_HINTS_STRONG.some((l) => lower.includes(l));
+  const mentionsAmbiguousLanguage = AMBIGUOUS_LANGUAGE_HINTS.some((l) => lower.includes(l));
+  const inProgrammingContext = PROGRAMMING_CONTEXT_RE.test(lower);
+  const mentionsLanguage =
+    mentionsStrongLanguage || (mentionsAmbiguousLanguage && inProgrammingContext);
   if (
     chars.hasCode ||
     verbs.has('implement') ||
