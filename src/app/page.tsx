@@ -194,24 +194,50 @@ export default async function DashboardPage({
 
   const [stats, recent] = await Promise.all([loadStats(period), loadRecent()]);
   const isEmpty = stats !== null && stats.totals.calls === 0;
+  const apiUnreachable = stats === null;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between fade-up">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-2xl font-bold tracking-tight gradient-text">
+            AI Financial Operations
+          </h1>
           <p className="text-sm text-muted mt-1">
-            Token usage, cost, and optimization opportunities across your AI stack.
+            Track every LLM token, classify every prompt, pinpoint why your AI bill is what it is,
+            and act on ranked dollar-impact recommendations to reduce it.
           </p>
         </div>
         <PeriodSelect defaultValue="7d" />
       </div>
 
-      {!stats ? (
-        <div className="card card-pad text-sm text-muted">
-          Unable to load stats. Make sure the API is reachable.
+      {apiUnreachable && (
+        <div className="card card-pad border-warn/40 bg-warn/5 text-sm text-warn flex items-start gap-3 fade-up-delay-1">
+          <svg
+            viewBox="0 0 24 24"
+            className="w-5 h-5 shrink-0 mt-0.5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden
+          >
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" strokeLinecap="round" />
+            <line x1="12" y1="17" x2="12.01" y2="17" strokeLinecap="round" />
+          </svg>
+          <div>
+            <div className="font-semibold text-inkDim">Data layer not reachable yet</div>
+            <div className="text-xs text-muted mt-1 leading-relaxed">
+              The dashboard is live, but the Postgres database can&apos;t be reached right now —
+              either the connection string isn&apos;t set, the Neon instance is sleeping, or the
+              schema migration hasn&apos;t run. Everything below explains what AI FinOps does;
+              once data flows in, this banner will be replaced with live numbers.
+            </div>
+          </div>
         </div>
-      ) : isEmpty ? (
+      )}
+
+      {apiUnreachable || isEmpty ? (
         <WelcomeEmpty />
       ) : (
         <>
@@ -234,7 +260,7 @@ export default async function DashboardPage({
         </>
       )}
 
-      {!isEmpty && stats && (
+      {!isEmpty && !apiUnreachable && stats && (
         <div className="card fade-up-delay-3">
           <div className="flex items-center justify-between px-6 py-4 border-b border-border">
             <div>
