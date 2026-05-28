@@ -4,7 +4,12 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  // Force the standard library client (not Accelerate/Data-Proxy).
+  // Without this, Prisma 5.x on Vercel sometimes generates a "prisma://"-only
+  // client that breaks against a plain postgresql:// URL from Neon.
+  engineType    = "library"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 model PromptLog {
