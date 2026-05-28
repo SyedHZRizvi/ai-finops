@@ -190,8 +190,14 @@ export async function POST(req: NextRequest) {
         errorMessage: truncate(message, 500),
       },
     });
+    // Audit M15: never echo crypto / decrypt internals (e.g. "iv must be 12
+    // bytes, got 11") back to the client. Keep the detail server-side via
+    // the ImportJob.errorMessage column, return a generic message externally.
+    const externalMessage = /decrypt|cipher|iv|auth.?tag/i.test(message)
+      ? 'Could not decrypt provider credentials. Verify FINOPS_ENCRYPTION_KEY has not changed.'
+      : message;
     return NextResponse.json(
-      { jobId: job.id, status: 'failed', error: message },
+      { jobId: job.id, status: 'failed', error: externalMessage },
       { status: 500 },
     );
   }

@@ -30,7 +30,8 @@ export async function GET(req: NextRequest) {
     if (category) where.category = category;
     if (complexity) where.complexity = complexity;
     if (model) where.model = model;
-    if (search) where.promptText = { contains: search };
+    // Audit M3: case-insensitive search so "Summarize" and "summarize" both match.
+    if (search) where.promptText = { contains: search, mode: 'insensitive' };
 
     const [items, total] = await Promise.all([
       prisma.promptLog.findMany({

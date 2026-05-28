@@ -4,6 +4,7 @@ import { PROVIDER_STYLES, getRecommendedModel } from './providerStyles';
 import { countTokens, estimateOutputTokens } from './tokenizer';
 import type {
   AudienceLevel,
+  Complexity,
   OutcomeFormat,
   OutputLength,
   StudioRequest,
@@ -115,6 +116,10 @@ interface VariantContext {
   mustIncludeList: string[];
   mustAvoidList: string[];
   examples: { input: string; output: string }[];
+  // Audit H8: pass detected complexity through so per-variant model selection
+  // matches the analysis (was hard-coded to 'moderate', overstating cost 4-17x
+  // for simple prompts on cheaper sibling models).
+  complexity: Complexity;
 }
 
 function buildTerse(ctx: VariantContext): StudioVariant {
@@ -358,7 +363,7 @@ function finalizeVariant(
   systemPrompt: string | undefined,
   rationale: string,
 ): StudioVariant {
-  const model = getRecommendedModel(ctx.provider, 'moderate');
+  const model = getRecommendedModel(ctx.provider, ctx.complexity);
   // Token + output estimates are based on the combined prompt that will hit the model.
   const fullText = systemPrompt ? `${systemPrompt}\n\n${prompt}` : prompt;
   const tokenCount = countTokens(fullText, model);
@@ -435,6 +440,7 @@ export function buildPrompt(req: StudioRequest): StudioResult {
     mustIncludeList,
     mustAvoidList,
     examples,
+    complexity: analysis.complexity,
   };
 
   const variants: StudioVariant[] = [

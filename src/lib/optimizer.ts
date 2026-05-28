@@ -62,12 +62,25 @@ function snippet(text: string, max = 140): string {
   return `${trimmed.slice(0, max - 1)}…`;
 }
 
-export function optimizePrompt(prompt: string, model: string = 'generic'): OptimizationResult {
+export function optimizePrompt(
+  prompt: string,
+  model: string = 'generic',
+  // Audit H9: if the caller knows the actual output token count from a logged
+  // call, pass it here. cap-output then fires only when output truly bloated,
+  // not when our heuristic estimate was high.
+  actualOutputTokens?: number,
+): OptimizationResult {
   const original = prompt ?? '';
   const originalTokens = countTokens(original, model);
   const analysis = analyzePrompt(original, model);
   const pricing = getPricing(model);
   const suggestions: OptimizationSuggestion[] = [];
+
+  // Use actual output tokens when supplied, fall back to estimate otherwise.
+  const effectiveOutputTokens =
+    actualOutputTokens !== undefined && actualOutputTokens > 0
+      ? actualOutputTokens
+      : analysis.estimatedOutputTokens;
 
   let working = original;
 
@@ -139,9 +152,15 @@ export function optimizePrompt(prompt: string, model: string = 'generic'): Optim
   // 4. split — multidimensional only
   if (analysis.complexity === 'multidimensional') {
     const parts = Math.max(2, Math.min(analysis.dimensions.length, 5));
-    // crude proxy for "context tokens shared across asks": ~half of input is reusable preamble
+    // Audit C7: previously this projected sharedContext * (parts - 1) which
+    // could exceed the original prompt's token count entirely. Cap savings at
+    // 60% of original — splitting + caching realistically pays back about
+    // half to two-thirds of repeated context tokens, never more.
     const sharedContext = Math.round(originalTokens * 0.5);
-    const estimatedSavings = sharedContext * (parts - 1);
+    const estimatedSavings = Math.min(
+      Math.round(originalTokens * 0.6),
+      sharedContext * (parts - 1),
+    );
     const { totalCost } = calculateCost(estimatedSavings, 0, model);
     suggestions.push({
       type: 'split',
@@ -213,17 +232,18 @@ export function optimizePrompt(prompt: string, model: string = 'generic'): Optim
 
   // 8. cap-output
   if (
-    analysis.estimatedOutputTokens > 1500 &&
+    effectiveOutputTokens > 1500 &&
     analysis.complexity !== 'multidimensional'
   ) {
     const targetWords = 300;
     const cappedTokens = Math.round(targetWords * 1.3);
-    const estimatedSavings = Math.max(0, analysis.estimatedOutputTokens - cappedTokens);
+    const estimatedSavings = Math.max(0, effectiveOutputTokens - cappedTokens);
     const { totalCost } = calculateCost(0, estimatedSavings, model);
+    const sourceWord = actualOutputTokens !== undefined ? 'Actual' : 'Estimated';
     suggestions.push({
       type: 'cap-output',
       title: 'Cap response length',
-      description: `Estimated output is ~${analysis.estimatedOutputTokens} tokens. Appending "Respond in at most ${targetWords} words." caps output cost.`,
+      description: `${sourceWord} output is ~${effectiveOutputTokens} tokens. Appending "Respond in at most ${targetWords} words." caps output cost.`,
       after: `…\n\nRespond in at most ${targetWords} words.`,
       estimatedTokenSavings: estimatedSavings,
       estimatedCostSavings: totalCost,
@@ -255,7 +275,7 @@ export function optimizePrompt(prompt: string, model: string = 'generic'): Optim
     0,
   );
   // Cap at the cost of the original call — savings can never exceed the bill.
-  const originalCost = calculateCost(originalTokens, analysis.estimatedOutputTokens, model).totalCost;
+  const originalCost = calculateCost(originalTokens, effectiveOutputTokens, model).totalCost;
   const estimatedCostSavings = Math.min(originalCost * 0.95, appliedSum + topAdvisory);
 
   return {

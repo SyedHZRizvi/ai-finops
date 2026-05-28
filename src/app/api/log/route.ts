@@ -9,17 +9,27 @@ import { timingSafeEqual } from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
 
+// Audit M4: cap text-field sizes so a runaway client cannot DoS the server
+// with a 100 MB POST that we then tokenize + analyze + optimize. Limits are
+// generous but real (1 MB of prompt text is ~250k tokens — well past any
+// real-world model's context window). Audit M7: latencyMs cannot be negative
+// (rejected upstream by Zod via .nonnegative()).
+const MAX_PROMPT_CHARS = 1_000_000;
+const MAX_METADATA_KEYS = 64;
 const LogBodySchema = z.object({
-  model: z.string().min(1),
-  provider: z.string().optional(),
-  appName: z.string().optional(),
-  userId: z.string().optional(),
-  promptText: z.string().min(1),
-  responseText: z.string().optional(),
-  inputTokens: z.number().int().nonnegative().optional(),
-  outputTokens: z.number().int().nonnegative().optional(),
-  latencyMs: z.number().int().nonnegative().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  model: z.string().min(1).max(200),
+  provider: z.string().max(50).optional(),
+  appName: z.string().max(200).optional(),
+  userId: z.string().max(200).optional(),
+  promptText: z.string().min(1).max(MAX_PROMPT_CHARS),
+  responseText: z.string().max(MAX_PROMPT_CHARS).optional(),
+  inputTokens: z.number().int().nonnegative().max(10_000_000).optional(),
+  outputTokens: z.number().int().nonnegative().max(10_000_000).optional(),
+  latencyMs: z.number().int().nonnegative().max(60 * 60 * 1000).optional(),
+  metadata: z.record(z.unknown()).refine(
+    (m) => Object.keys(m).length <= MAX_METADATA_KEYS,
+    { message: `metadata may have at most ${MAX_METADATA_KEYS} keys` },
+  ).optional(),
 });
 
 function checkAuth(req: NextRequest): { ok: true } | { ok: false; status: number; error: string } {
@@ -91,7 +101,8 @@ export async function POST(req: NextRequest) {
     let potentialSavedTokens = 0;
     let potentialSavedCost = 0;
     try {
-      const opt = optimizePrompt(body.promptText, body.model);
+      // Pass actual outputTokens so cap-output fires on real bloat, not estimates.
+      const opt = optimizePrompt(body.promptText, body.model, outputTokens);
       potentialSavedTokens = opt.savedTokens;
       potentialSavedCost = opt.estimatedCostSavings;
     } catch {
