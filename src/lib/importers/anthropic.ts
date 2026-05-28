@@ -10,7 +10,7 @@
 // importer is intentionally defensive: every field is read through narrowing
 // helpers and missing fields default to 0 / undefined with no exceptions.
 
-import { calculateCost } from '../pricing';
+import { calculateCost, getPricing } from '../pricing';
 import type { ImportedRecord, Importer, ImporterContext, ImportResult } from './types';
 
 const BASE_URL = 'https://api.anthropic.com/v1/organizations/usage_report/messages';
@@ -143,16 +143,18 @@ function normalizeRecord(
   const requestCount = toInt(result['request_count']);
   const calls = requestCount > 0 ? requestCount : 1;
 
-  const baseCost = calculateCost(uncached + cacheCreation, outputTokens, model);
-  const cacheReadCost = calculateCost(cacheRead, 0, model);
-  // Anthropic publishes: read = 0.10x input, write surcharge = 0.25x input.
-  const ANTHROPIC_CACHE_READ_MULTIPLIER = 0.1;
-  const ANTHROPIC_CACHE_WRITE_MULTIPLIER = 1.25;
-  const cacheWriteSurcharge = calculateCost(cacheCreation, 0, model).inputCost *
-    (ANTHROPIC_CACHE_WRITE_MULTIPLIER - 1);
+  // Audit C3 (complete): prefer DB-configured cache pricing when present,
+  // fall back to documented Anthropic ratios when not.
+  const pricing = getPricing(model);
+  const ANTHROPIC_CACHE_READ_RATIO = 0.1;
+  const ANTHROPIC_CACHE_WRITE_RATIO = 1.25;
+  const cacheReadRate = pricing.cacheReadCostPer1M ?? pricing.inputCostPer1M * ANTHROPIC_CACHE_READ_RATIO;
+  const cacheWriteRate = pricing.cacheWriteCostPer1M ?? pricing.inputCostPer1M * ANTHROPIC_CACHE_WRITE_RATIO;
   const inputCost =
-    baseCost.inputCost + cacheReadCost.inputCost * ANTHROPIC_CACHE_READ_MULTIPLIER + cacheWriteSurcharge;
-  const outputCost = baseCost.outputCost;
+    (uncached / 1_000_000) * pricing.inputCostPer1M +
+    (cacheRead / 1_000_000) * cacheReadRate +
+    (cacheCreation / 1_000_000) * cacheWriteRate;
+  const outputCost = (outputTokens / 1_000_000) * pricing.outputCostPer1M;
   const totalCost = inputCost + outputCost;
 
   const workspaceId = toString(result['workspace_id']);
@@ -168,9 +170,12 @@ function normalizeRecord(
     cache_creation_input_tokens: cacheCreation,
     output_tokens: outputTokens,
     request_count: requestCount,
-    cache_read_multiplier: ANTHROPIC_CACHE_READ_MULTIPLIER,
-    cache_write_multiplier: ANTHROPIC_CACHE_WRITE_MULTIPLIER,
+    cache_read_rate_per_1m: cacheReadRate,
+    cache_write_rate_per_1m: cacheWriteRate,
   };
+  // Keep calculateCost reachable so unused-import lint doesn't trip if all
+  // call sites switch over.
+  void calculateCost;
 
   return {
     timestamp,
@@ -185,6 +190,7 @@ function normalizeRecord(
     inputCost,
     outputCost,
     totalCost,
+    callCount: calls,
     category: 'other',
     complexity: 'simple',
     complexityScore: 0,

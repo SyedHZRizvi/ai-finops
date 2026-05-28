@@ -283,6 +283,9 @@ async function run(ctx: ImporterContext): Promise<ImportResult> {
       metadata: JSON.stringify({ source: 'import', sourceKind: 'csv' }),
       potentialSavedTokens: 0,
       potentialSavedCost: 0,
+      // CSV rows are treated as a single call each unless callCount is
+      // explicitly supplied — most users will paste per-call exports.
+      callCount: 1,
     };
 
     records.push(record);

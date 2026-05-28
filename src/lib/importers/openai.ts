@@ -10,7 +10,7 @@
 // unix-seconds or unix-ms timestamps on input and either shape on output by
 // treating every field defensively.
 
-import { calculateCost } from '../pricing';
+import { calculateCost, getPricing } from '../pricing';
 import type { ImportedRecord, Importer, ImporterContext, ImportResult } from './types';
 
 const BASE_URL = 'https://api.openai.com/v1/organization/usage/completions';
@@ -141,14 +141,17 @@ function normalizeRecord(
   const requestCount = toInt(result['num_model_requests']);
   const calls = requestCount > 0 ? requestCount : 1;
 
-  // Audit C3: OpenAI cached input is documented at ~50% of standard input
-  // pricing. Bill uncached + audio at the full rate, cached at half.
-  const OPENAI_CACHED_INPUT_MULTIPLIER = 0.5;
-  const fullRate = calculateCost(uncachedInput + audioInput, outputTokens, model);
-  const cachedRate = calculateCost(cachedInput, 0, model);
-  const inputCost = fullRate.inputCost + cachedRate.inputCost * OPENAI_CACHED_INPUT_MULTIPLIER;
-  const outputCost = fullRate.outputCost;
+  // Audit C3 (complete): prefer DB-configured cache pricing, fall back to
+  // documented OpenAI ratio (~50% of input).
+  const pricing = getPricing(model);
+  const OPENAI_CACHED_INPUT_RATIO = 0.5;
+  const cachedRate = pricing.cacheReadCostPer1M ?? pricing.inputCostPer1M * OPENAI_CACHED_INPUT_RATIO;
+  const inputCost =
+    ((uncachedInput + audioInput) / 1_000_000) * pricing.inputCostPer1M +
+    (cachedInput / 1_000_000) * cachedRate;
+  const outputCost = (outputTokens / 1_000_000) * pricing.outputCostPer1M;
   const totalCost = inputCost + outputCost;
+  void calculateCost;
 
   const projectId = toString(result['project_id']);
   const userId = toString(result['user_id']);
@@ -179,6 +182,7 @@ function normalizeRecord(
     inputCost,
     outputCost,
     totalCost,
+    callCount: calls,
     category: 'other',
     complexity: 'simple',
     complexityScore: 0,

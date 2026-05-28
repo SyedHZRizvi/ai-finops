@@ -60,6 +60,13 @@ export interface ImportedRecord {
   metadata: string | null;
   potentialSavedTokens: number;
   potentialSavedCost: number;
+  /**
+   * Number of real LLM calls represented by this row. For SDK-logged rows
+   * this is 1. For import-aggregate rows it is the provider's request_count
+   * (typically thousands per row). Aggregations that count "calls" sum this
+   * column rather than counting rows.
+   */
+  callCount: number;
 }
 
 export interface ImportResult {

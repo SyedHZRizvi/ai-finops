@@ -110,6 +110,8 @@ export async function ensurePricingLoaded(): Promise<void> {
       ...(r.provider ? { provider: r.provider } : {}),
       inputCostPer1M: r.inputCostPer1M,
       outputCostPer1M: r.outputCostPer1M,
+      ...(r.cacheReadCostPer1M !== null ? { cacheReadCostPer1M: r.cacheReadCostPer1M } : {}),
+      ...(r.cacheWriteCostPer1M !== null ? { cacheWriteCostPer1M: r.cacheWriteCostPer1M } : {}),
       contextWindow: r.contextWindow,
     }));
     _lastLoadedAt = now;

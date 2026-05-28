@@ -72,6 +72,17 @@ export interface ModelPricing {
   provider?: string;
   inputCostPer1M: number; // USD per 1M input tokens
   outputCostPer1M: number; // USD per 1M output tokens
+  /**
+   * Optional. USD per 1M cache-read input tokens (Anthropic ~10% of input,
+   * OpenAI ~50%). When undefined, importers fall back to documented family
+   * ratios.
+   */
+  cacheReadCostPer1M?: number;
+  /**
+   * Optional. USD per 1M cache-write input tokens (Anthropic ~125% of
+   * input). When undefined, importers apply a 25% surcharge.
+   */
+  cacheWriteCostPer1M?: number;
   contextWindow: number;
 }
 

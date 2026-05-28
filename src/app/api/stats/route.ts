@@ -77,6 +77,7 @@ export async function GET(req: NextRequest) {
         latencyMs: true,
         potentialSavedTokens: true,
         potentialSavedCost: true,
+        callCount: true,
       },
       orderBy: { timestamp: 'asc' },
     });
@@ -98,7 +99,8 @@ export async function GET(req: NextRequest) {
     const tsMap = new Map<string, { calls: number; tokens: number; cost: number }>();
 
     for (const log of logs) {
-      calls++;
+      const c = log.callCount || 1;
+      calls += c;
       inputTokens += log.inputTokens;
       outputTokens += log.outputTokens;
       totalTokens += log.totalTokens;
@@ -111,26 +113,26 @@ export async function GET(req: NextRequest) {
       savedCost += log.potentialSavedCost;
 
       const cat = byCategoryMap.get(log.category) ?? { calls: 0, tokens: 0, cost: 0 };
-      cat.calls++;
+      cat.calls += c;
       cat.tokens += log.totalTokens;
       cat.cost += log.totalCost;
       byCategoryMap.set(log.category, cat);
 
       const cx = byComplexityMap.get(log.complexity) ?? { calls: 0, tokens: 0, cost: 0 };
-      cx.calls++;
+      cx.calls += c;
       cx.tokens += log.totalTokens;
       cx.cost += log.totalCost;
       byComplexityMap.set(log.complexity, cx);
 
       const m = byModelMap.get(log.model) ?? { calls: 0, tokens: 0, cost: 0 };
-      m.calls++;
+      m.calls += c;
       m.tokens += log.totalTokens;
       m.cost += log.totalCost;
       byModelMap.set(log.model, m);
 
       const key = bucketStart(log.timestamp, bucket).toISOString();
       const slot = tsMap.get(key) ?? { calls: 0, tokens: 0, cost: 0 };
-      slot.calls++;
+      slot.calls += c;
       slot.tokens += log.totalTokens;
       slot.cost += log.totalCost;
       tsMap.set(key, slot);

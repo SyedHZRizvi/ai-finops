@@ -165,6 +165,7 @@ export async function POST(req: NextRequest) {
                 metadata: r.metadata,
                 potentialSavedTokens: r.potentialSavedTokens,
                 potentialSavedCost: r.potentialSavedCost,
+                callCount: r.callCount,
               },
             }),
           ),
@@ -196,6 +197,7 @@ export async function POST(req: NextRequest) {
               metadata: r.metadata,
               potentialSavedTokens: r.potentialSavedTokens,
               potentialSavedCost: r.potentialSavedCost,
+              callCount: r.callCount,
             },
           });
           recordsImported += 1;

@@ -27,6 +27,9 @@ interface RawRow {
   totalCost: number;
   category: string;
   complexity: string;
+  // Audit H12: count of real LLM calls this row represents. 1 for SDK rows,
+  // request_count for import-aggregate rows.
+  callCount: number;
 }
 
 // Audit H5/H10: import-aggregate rows are NOT real per-call data — they are
@@ -565,11 +568,15 @@ export async function computeInsights(period: Period = '30d'): Promise<InsightsR
       totalCost: true,
       category: true,
       complexity: true,
+      callCount: true,
     },
     orderBy: { timestamp: 'desc' },
   });
 
-  const totalCalls = rows.length;
+  // Audit H12: totalCalls sums callCount, not row count. An imported daily
+  // aggregate from Anthropic carrying request_count=10000 is 10000 calls,
+  // not 1.
+  const totalCalls = rows.reduce((s, r) => s + (r.callCount || 1), 0);
   const totalCost = rows.reduce((s, r) => s + r.totalCost, 0);
   const avgCostPerCall = totalCalls > 0 ? totalCost / totalCalls : 0;
 
