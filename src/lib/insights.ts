@@ -29,6 +29,16 @@ interface RawRow {
   complexity: string;
 }
 
+// Audit H5/H10: import-aggregate rows are NOT real per-call data — they are
+// daily rollups synthesized from provider admin APIs. The promptText always
+// starts with a "[<Provider> usage rollup:" marker. Per-prompt recommendations
+// (model-mismatch, output-bloat, redundancy clusters) must filter these out;
+// otherwise we recommend "downgrade this simple call" to a row that is
+// actually thousands of calls of unknown complexity.
+function isImportAggregate(row: { promptText?: string }): boolean {
+  return typeof row.promptText === 'string' && row.promptText.startsWith('[');
+}
+
 function periodToSince(period: Period): Date | null {
   const now = Date.now();
   switch (period) {
@@ -587,9 +597,11 @@ export async function computeInsights(period: Period = '30d'): Promise<InsightsR
   };
 
   const topSpenders = topByCost(rows, 10).map(toTopSpender);
-  const modelMismatch = buildModelMismatch(rows);
-  const outputBloat = buildOutputBloat(rows);
-  const redundancyClusters = buildRedundancyClusters(rows);
+  // Per-call recommendations require actual per-call data; exclude aggregates.
+  const perCallRows = rows.filter((r) => !isImportAggregate(r));
+  const modelMismatch = buildModelMismatch(perCallRows);
+  const outputBloat = buildOutputBloat(perCallRows);
+  const redundancyClusters = buildRedundancyClusters(perCallRows);
   const appHotspots = buildAppHotspots(rows, totalCost);
 
   const { factor: multiplier, reliable: projectionReliable } = monthlyMultiplier(period, rows);

@@ -94,6 +94,46 @@ export async function POST(req: NextRequest) {
 
     const records = result.records;
     let recordsImported = 0;
+    let recordsSkippedDuplicate = 0;
+
+    // Audit H4: idempotency. Pre-fetch existing import rows in the same time
+    // range and build a fingerprint set, then drop incoming records that
+    // already exist. Lets the user safely click "Run Import" twice (or two
+    // operators run it simultaneously) without double-counting.
+    if (records.length > 0) {
+      const earliest = records.reduce(
+        (min, r) => (r.timestamp < min ? r.timestamp : min),
+        records[0]!.timestamp,
+      );
+      const latest = records.reduce(
+        (max, r) => (r.timestamp > max ? r.timestamp : max),
+        records[0]!.timestamp,
+      );
+      const existing = await prisma.promptLog.findMany({
+        where: {
+          provider: body.provider,
+          timestamp: { gte: earliest, lte: latest },
+          promptText: { startsWith: '[' }, // import-rollup marker
+        },
+        select: { timestamp: true, model: true, appName: true },
+      });
+      const seen = new Set(
+        existing.map(
+          (e) => `${e.timestamp.toISOString()}|${e.model}|${e.appName ?? ''}`,
+        ),
+      );
+      const fresh = records.filter((r) => {
+        const key = `${r.timestamp.toISOString()}|${r.model}|${r.appName ?? ''}`;
+        if (seen.has(key)) {
+          recordsSkippedDuplicate += 1;
+          return false;
+        }
+        seen.add(key);
+        return true;
+      });
+      records.length = 0;
+      records.push(...fresh);
+    }
 
     if (records.length > 0) {
       // Best effort: try a single transaction first; fall back to per-row
@@ -174,11 +214,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    const warnings = [...result.warnings];
+    if (recordsSkippedDuplicate > 0) {
+      warnings.push(
+        `Skipped ${recordsSkippedDuplicate} record(s) already imported in this time range (idempotency).`,
+      );
+    }
     return NextResponse.json({
       jobId: job.id,
       status: 'succeeded',
       recordsImported,
-      warnings: result.warnings,
+      recordsSkippedDuplicate,
+      warnings,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
