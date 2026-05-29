@@ -56,6 +56,11 @@ const navGroups: Array<{ label: string; items: Array<{ href: string; label: stri
       { href: '/import', label: 'Connectors' },
       { href: '/api-keys', label: 'API Keys' },
       { href: '/slack', label: 'Slack' },
+      // "Developer API" lives in the Connect group (not Admin) because it's
+      // integration plumbing — engineers wiring apps into AI FinOps. The
+      // "Developer" prefix on the label makes the audience explicit so a
+      // regular dashboard user knows the page isn't for them.
+      { href: '/api-docs', label: 'Developer API' },
     ],
   },
   {
@@ -63,7 +68,6 @@ const navGroups: Array<{ label: string; items: Array<{ href: string; label: stri
     items: [
       { href: '/settings', label: 'Settings' },
       { href: '/audit', label: 'Audit' },
-      { href: '/api-docs', label: 'API' },
     ],
   },
 ];
