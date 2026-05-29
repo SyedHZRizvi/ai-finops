@@ -1,6 +1,8 @@
 import { PromptTable, type PromptRow } from '@/components/PromptTable';
 import { PromptDetail } from '@/components/PromptDetail';
 import { ExportButton } from '@/components/ExportButton';
+import { SaveFilterButton } from '@/components/SaveFilterButton';
+import { SavedFiltersDropdown } from '@/components/SavedFiltersDropdown';
 import type { ModelPricing } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -72,7 +74,11 @@ export default async function PromptsPage({
             Browse and filter every logged prompt. Click a row to inspect.
           </p>
         </div>
-        <ExportButton url={`/api/export/prompts?${qs.toString()}`} label="Export" />
+        <div className="flex items-center gap-2 flex-wrap">
+          <SavedFiltersDropdown />
+          <SaveFilterButton />
+          <ExportButton url={`/api/export/prompts?${qs.toString()}`} label="Export" />
+        </div>
       </div>
 
       {!data ? (

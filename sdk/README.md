@@ -228,3 +228,146 @@ cheaper model would have handled fine, and surfaces concrete rewrites at
 `/optimizer`. In practice, teams that pipe their LLM traffic through the
 dashboard typically see 20–40% spend reduction within the first month — not
 from algorithmic magic, but from making waste visible.
+
+## Framework adapters
+
+The wrappers above are great when you own every LLM call site. Real apps
+usually go through a framework — LangChain, Vercel AI SDK, or just the raw
+OpenAI SDK with calls scattered across many files. The adapters below plug
+into each framework's native extension point so you instrument the whole app
+with one line.
+
+All three adapters keep the SDK zero-dependency: we declare each framework's
+public interface inline as TypeScript types, and the adapter is a structural
+match — you install the framework, we never do.
+
+### LangChain
+
+LangChain calls `BaseCallbackHandler` lifecycle methods as a run progresses.
+`FinOpsLangChainHandler` implements that contract — attach it once and every
+LLM call inside that runnable (or chain of runnables) is logged.
+
+See [`examples/langchain-example.ts`](./examples/langchain-example.ts).
+
+```bash
+npm install @langchain/openai @langchain/core
+```
+
+```ts
+import { ChatOpenAI } from '@langchain/openai';
+import { FinOpsClient, FinOpsLangChainHandler } from '@ai-finops/sdk';
+
+const finops = new FinOpsClient({ appName: 'rag-pipeline' });
+const handler = new FinOpsLangChainHandler(finops);
+
+const model = new ChatOpenAI({
+  model: 'gpt-4o-mini',
+  callbacks: [handler],
+});
+
+await model.invoke('Summarize this doc.');
+```
+
+The handler reads tokens from `llmOutput.tokenUsage`, the model from the run
+metadata, and the response text from the `generations` array. Errors during
+a run drop the cached prompt so memory stays bounded. Reuse the same handler
+across many models and chains — it's stateful per run, not per app.
+
+For multi-tenant apps, supply `resolveUserId` to lift the user off LangChain
+metadata or tags:
+
+```ts
+const handler = new FinOpsLangChainHandler(finops, {
+  resolveUserId: ({ metadata }) =>
+    typeof metadata?.userId === 'string' ? metadata.userId : undefined,
+});
+
+await chain.invoke({ input }, { metadata: { userId: 'user_123' } });
+```
+
+### Vercel AI SDK
+
+The AI SDK has a `LanguageModelV1Middleware` interface with `wrapGenerate` and
+`wrapStream` hooks. `finopsMiddleware` returns a middleware you pass through
+`wrapLanguageModel` — every `generateText`, `streamText`, `generateObject`,
+and `streamObject` call against the wrapped model is logged.
+
+See [`examples/vercel-ai-sdk-example.ts`](./examples/vercel-ai-sdk-example.ts).
+
+```bash
+npm install ai @ai-sdk/openai
+```
+
+```ts
+import { generateText, wrapLanguageModel } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { FinOpsClient, finopsMiddleware } from '@ai-finops/sdk';
+
+const finops = new FinOpsClient({ appName: 'my-app' });
+const model = wrapLanguageModel({
+  model: openai('gpt-4o-mini'),
+  middleware: finopsMiddleware(finops),
+});
+
+const { text } = await generateText({ model, prompt: 'Write a haiku.' });
+```
+
+For streaming, the middleware tees the stream — the consumer-facing stream is
+unchanged and we accumulate text + final usage on a parallel reader. One log
+is sent per call after the stream completes (or aborts).
+
+`resolveUserId` and `resolveMetadata` let you lift fields off the request:
+
+```ts
+finopsMiddleware(finops, {
+  resolveUserId: (params) => {
+    const u = params.headers?.['x-user-id'];
+    return typeof u === 'string' ? u : undefined;
+  },
+  resolveMetadata: () => ({ feature: 'summarizer' }),
+});
+```
+
+### OpenAI SDK middleware
+
+The OpenAI Node SDK exposes a `fetch` option on its constructor. Pass the
+FinOps fetch wrapper and every chat completion, completion, and responses-API
+call routed through that client is logged — including streaming responses.
+
+See [`examples/openai-middleware-example.ts`](./examples/openai-middleware-example.ts).
+
+```bash
+npm install openai
+```
+
+```ts
+import OpenAI from 'openai';
+import { FinOpsClient, finopsOpenAIFetch } from '@ai-finops/sdk';
+
+const finops = new FinOpsClient({ appName: 'my-app' });
+const openai = new OpenAI({
+  fetch: finopsOpenAIFetch(finops),
+});
+
+await openai.chat.completions.create({
+  model: 'gpt-4o-mini',
+  messages: [{ role: 'user', content: 'Write a haiku.' }],
+});
+```
+
+Streaming works the same way: the wrapper tees the SSE response, so your
+`for await (const chunk of stream)` loop sees every chunk live, and a single
+FinOps log is sent after the stream finishes. Pass
+`stream_options: { include_usage: true }` if you want exact token counts —
+otherwise the dashboard's server-side tokenizer fills them in.
+
+Because this is "just a `fetch`", it also works for OpenAI-compatible
+endpoints. Tag the provider so the dashboard reports correctly:
+
+```ts
+const groq = new OpenAI({
+  baseURL: 'https://api.groq.com/openai/v1',
+  apiKey: process.env.GROQ_API_KEY,
+  fetch: finopsOpenAIFetch(finops, { provider: 'groq' }),
+});
+```

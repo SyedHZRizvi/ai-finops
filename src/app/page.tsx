@@ -12,6 +12,7 @@ import { ForecastCard } from '@/components/ForecastCard';
 import { BudgetBanner } from '@/components/BudgetBanner';
 import { AutoRefresh } from '@/components/AutoRefresh';
 import { ExportButton } from '@/components/ExportButton';
+import { DigestCard } from '@/components/DigestCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -269,6 +270,9 @@ export default async function DashboardPage({
             <CategoryChart data={stats.byCategory} />
             <ModelBreakdown data={stats.byModel} />
           </div>
+
+          {/* Compact week-over-week digest preview at the bottom of the dashboard. */}
+          <DigestCard />
         </>
       )}
 
