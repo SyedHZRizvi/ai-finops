@@ -93,6 +93,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 What is this?
               </Link>
+              {/* Meta links — moved out of the top nav because they're about
+                  the tool, not about reducing AI cost. The floating Feedback
+                  button stays globally accessible via <FeedbackButton/>. */}
+              <span className="text-borderBright" aria-hidden>·</span>
+              <Link
+                href="/changelog"
+                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
+              >
+                Changelog
+              </Link>
+              <span className="text-borderBright" aria-hidden>·</span>
+              <Link
+                href="/roadmap"
+                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
+              >
+                Roadmap
+              </Link>
+              <span className="text-borderBright" aria-hidden>·</span>
+              <Link
+                href="/feedback"
+                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
+              >
+                Feedback
+              </Link>
               <span className="text-borderBright" aria-hidden>·</span>
               <HealthIndicator />
               <span className="text-borderBright" aria-hidden>·</span>

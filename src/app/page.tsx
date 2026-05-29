@@ -200,17 +200,52 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between fade-up">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight gradient-text">
-            AI Financial Operations
-          </h1>
-          <p className="text-sm text-muted mt-1">
-            Track every LLM token, classify every prompt, pinpoint why your AI bill is what it is,
-            and act on ranked dollar-impact recommendations to reduce it.
-          </p>
+      {/* Mission hero — restates the original program goal at the top of the
+          home page, with the 3-step Track → Classify → Optimize workflow
+          surfaced as inline chip-shaped links so the user is one click from
+          the page that does each step. The hero card uses .hero (the
+          purple-to-cyan mesh-backed surface) to visually signal "this is the
+          most important block on the dashboard". */}
+      <div className="hero !p-6 md:!p-8 fade-up">
+        <div className="flex items-start justify-between gap-6 flex-wrap relative">
+          <div className="min-w-0 flex-1">
+            <span className="chip chip-brand mb-3 inline-flex uppercase tracking-wider text-[10px]">
+              The mission
+            </span>
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight gradient-text">
+              Reduce your enterprise AI cost.
+            </h1>
+            <p className="text-sm md:text-base text-inkDim mt-2 max-w-2xl leading-relaxed">
+              Track every input &amp; output token. Classify every prompt by
+              category and complexity. Act on ranked dollar-impact
+              recommendations to reduce your AI bill.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-5">
+              <Link
+                href="/prompts"
+                className="chip chip-teal hover:opacity-80 transition-opacity"
+              >
+                <span className="font-bold mr-1">1.</span> Track every token{' '}
+                <span aria-hidden>→</span>
+              </Link>
+              <Link
+                href="/insights"
+                className="chip chip-blue hover:opacity-80 transition-opacity"
+              >
+                <span className="font-bold mr-1">2.</span> Classify by complexity{' '}
+                <span aria-hidden>→</span>
+              </Link>
+              <Link
+                href="/optimizer"
+                className="chip chip-brand hover:opacity-80 transition-opacity"
+              >
+                <span className="font-bold mr-1">3.</span> Optimize to save{' '}
+                <span aria-hidden>→</span>
+              </Link>
+            </div>
+          </div>
+          <PeriodSelect defaultValue="7d" />
         </div>
-        <PeriodSelect defaultValue="7d" />
       </div>
 
       {apiUnreachable && (

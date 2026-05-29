@@ -6,30 +6,71 @@ import { AnomalyBadge } from './AnomalyBadge';
 import { CommandPaletteHint } from './CommandPaletteHint';
 import { SignOutButton } from './SignOutButton';
 
-const items = [
-  { href: '/', label: 'Dashboard' },
-  { href: '/insights', label: 'Insights' },
-  { href: '/quality', label: 'Quality' },
-  { href: '/snapshots', label: 'Snapshots' },
-  { href: '/prompts', label: 'Prompts' },
-  { href: '/optimizer', label: 'Optimizer' },
-  { href: '/studio', label: 'Studio' },
-  { href: '/templates', label: 'Templates' },
-  { href: '/compare', label: 'Compare' },
-  { href: '/anomaly', label: 'Alerts' },
-  { href: '/budget', label: 'Budget' },
-  { href: '/allocations', label: 'Allocations' },
-  { href: '/digest', label: 'Digest' },
-  { href: '/settings', label: 'Settings' },
-  { href: '/api-keys', label: 'API Keys' },
-  { href: '/import', label: 'Connectors' },
-  { href: '/slack', label: 'Slack' },
-  { href: '/audit', label: 'Audit' },
-  { href: '/api-docs', label: 'API' },
-  { href: '/changelog', label: 'Changelog' },
-  { href: '/roadmap', label: 'Roadmap' },
-  { href: '/feedback', label: 'Feedback' },
+// Nav items organized into mission groups so the original program goal —
+// Track → Classify → Optimize — is the first thing the eye lands on. The
+// groups also map directly to the 5 layers of cost reduction documented in
+// the program: Visibility (Track), Classification (Classify), Recommendations
+// + prompt-level work (Optimize), Policy (Control), Plumbing (Connect),
+// Operations (Admin). Meta pages (changelog/roadmap/feedback) live in the
+// global footer instead — they're about the tool, not about reducing cost.
+//
+// Subtle vertical dividers render between groups on desktop so the structure
+// is visible without needing text labels (which would clutter the bar).
+const navGroups: Array<{ label: string; items: Array<{ href: string; label: string }> }> = [
+  {
+    label: 'Track',
+    items: [
+      { href: '/', label: 'Dashboard' },
+      { href: '/prompts', label: 'Prompts' },
+    ],
+  },
+  {
+    label: 'Classify',
+    items: [
+      { href: '/insights', label: 'Insights' },
+      { href: '/quality', label: 'Quality' },
+    ],
+  },
+  {
+    label: 'Optimize',
+    items: [
+      { href: '/optimizer', label: 'Optimizer' },
+      { href: '/studio', label: 'Studio' },
+      { href: '/templates', label: 'Templates' },
+      { href: '/compare', label: 'Compare' },
+    ],
+  },
+  {
+    label: 'Control',
+    items: [
+      { href: '/budget', label: 'Budget' },
+      { href: '/anomaly', label: 'Alerts' },
+      { href: '/allocations', label: 'Allocations' },
+      { href: '/snapshots', label: 'Snapshots' },
+      { href: '/digest', label: 'Digest' },
+    ],
+  },
+  {
+    label: 'Connect',
+    items: [
+      { href: '/import', label: 'Connectors' },
+      { href: '/api-keys', label: 'API Keys' },
+      { href: '/slack', label: 'Slack' },
+    ],
+  },
+  {
+    label: 'Admin',
+    items: [
+      { href: '/settings', label: 'Settings' },
+      { href: '/audit', label: 'Audit' },
+      { href: '/api-docs', label: 'API' },
+    ],
+  },
 ];
+
+// Flattened list for the mobile drawer — group dividers don't add value in
+// a vertical 2-column grid where every item is the same size anyway.
+const items = navGroups.flatMap((g) => g.items);
 
 export function Nav() {
   const path = usePathname();
@@ -63,25 +104,46 @@ export function Nav() {
           <span className="chip chip-brand ml-1 hidden sm:inline-flex" aria-label="beta">beta</span>
         </Link>
 
-        {/* Desktop nav — wraps gracefully when items don't fit */}
+        {/* Desktop nav — wraps gracefully when items don't fit. Items are
+            rendered in mission-aligned groups with a thin vertical divider
+            between each group. The aria-label on each group element makes
+            the structure announceable to screen readers (Track / Classify /
+            Optimize / Control / Connect / Admin). */}
         <nav className="hidden lg:flex items-center gap-1 flex-wrap justify-end" aria-label="Primary">
-          {items.map((it) => {
-            const active = isActive(it.href);
-            return (
-              <Link
-                key={it.href}
-                href={it.href}
-                aria-current={active ? 'page' : undefined}
-                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-150 focus-ring ${
-                  active
-                    ? 'bg-brand/15 text-brandLight border border-brand/30'
-                    : 'text-muted hover:text-ink hover:bg-panel2 border border-transparent'
-                }`}
+          {navGroups.map((group, gi) => (
+            <span key={group.label} className="flex items-center gap-1">
+              {gi > 0 && (
+                <span
+                  aria-hidden
+                  className="inline-block w-px h-5 bg-border mx-1"
+                  title={group.label}
+                />
+              )}
+              <span
+                role="group"
+                aria-label={group.label}
+                className="flex items-center gap-1"
               >
-                {it.label}
-              </Link>
-            );
-          })}
+                {group.items.map((it) => {
+                  const active = isActive(it.href);
+                  return (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      aria-current={active ? 'page' : undefined}
+                      className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-150 focus-ring ${
+                        active
+                          ? 'bg-brand/15 text-brandLight border border-brand/30'
+                          : 'text-muted hover:text-ink hover:bg-panel2 border border-transparent'
+                      }`}
+                    >
+                      {it.label}
+                    </Link>
+                  );
+                })}
+              </span>
+            </span>
+          ))}
           <CommandPaletteHint />
           <AnomalyBadge />
           <SignOutButton />
