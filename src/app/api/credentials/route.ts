@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { encrypt } from '@/lib/importers';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -96,6 +97,14 @@ export async function POST(req: NextRequest) {
       select: { id: true, provider: true, label: true },
     });
 
+    await recordAudit({
+      req,
+      action: 'credential.create',
+      targetKind: 'credential',
+      targetId: row.id,
+      payload: { provider: row.provider, label: row.label },
+    });
+
     return NextResponse.json(row);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'internal error';
@@ -111,6 +120,12 @@ export async function DELETE(req: NextRequest) {
     }
     await prisma.credential.delete({ where: { id } }).catch(() => {
       // Idempotent delete — missing rows are treated as success.
+    });
+    await recordAudit({
+      req,
+      action: 'credential.delete',
+      targetKind: 'credential',
+      targetId: id,
     });
     return NextResponse.json({ ok: true });
   } catch (err) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
+import { recordAudit } from '@/lib/audit';
 
 const UpsertSchema = z.object({
   model: z.string().min(1),
@@ -40,6 +41,14 @@ export async function POST(req: NextRequest) {
       where: { model },
       update: { provider: provider ?? null, inputCostPer1M, outputCostPer1M, contextWindow, isActive: true },
       create: { model, provider: provider ?? null, inputCostPer1M, outputCostPer1M, contextWindow },
+    });
+
+    await recordAudit({
+      req,
+      action: 'pricing.update',
+      targetKind: 'pricing',
+      targetId: row.model,
+      payload: parsed.data,
     });
 
     return NextResponse.json(row);

@@ -22,6 +22,8 @@ import {
 const PUBLIC_PATH_PREFIXES = [
   '/api/log', // SDK ingest — clients use their own bearer token
   '/api/stream', // SSE live ticker; harmless metadata, monitors may need it
+  '/api/slack', // Slack webhooks verify their own HMAC signature
+  '/api/cron', // Vercel Cron jobs use Bearer CRON_SECRET, not session cookies
   '/_next', // Next.js build assets
 ];
 

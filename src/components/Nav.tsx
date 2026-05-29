@@ -10,6 +10,7 @@ const items = [
   { href: '/', label: 'Dashboard' },
   { href: '/insights', label: 'Insights' },
   { href: '/quality', label: 'Quality' },
+  { href: '/snapshots', label: 'Snapshots' },
   { href: '/prompts', label: 'Prompts' },
   { href: '/optimizer', label: 'Optimizer' },
   { href: '/studio', label: 'Studio' },
@@ -22,6 +23,8 @@ const items = [
   { href: '/settings', label: 'Settings' },
   { href: '/api-keys', label: 'API Keys' },
   { href: '/import', label: 'Connectors' },
+  { href: '/slack', label: 'Slack' },
+  { href: '/audit', label: 'Audit' },
   { href: '/api-docs', label: 'API' },
 ];
 

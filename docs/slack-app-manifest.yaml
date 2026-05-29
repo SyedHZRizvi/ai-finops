@@ -1,0 +1,61 @@
+# AI FinOps — Slack App Manifest
+#
+# Paste this into api.slack.com → Create New App → "From an app manifest".
+# Replace every occurrence of `YOUR_BASE_URL` with your deployed origin,
+# e.g. `https://ai-finops.example.com` or `https://your-vercel-app.vercel.app`.
+# No trailing slash. The same URL is used for the OAuth redirect, slash
+# command endpoint, and Events API endpoint.
+#
+# After creating the app, copy the Client ID / Client Secret / Signing
+# Secret from "Basic Information" and put them in your env:
+#
+#   SLACK_CLIENT_ID="..."
+#   SLACK_CLIENT_SECRET="..."
+#   SLACK_SIGNING_SECRET="..."
+#
+# Then redeploy and visit /slack to install.
+
+display_information:
+  name: AI FinOps
+  description: AI cost visibility and optimization for your team's LLM usage.
+  background_color: "#1f1147"
+  long_description: |
+    AI FinOps gives engineering teams real-time visibility into AI spend.
+    Use /finops commands or @mention the bot from any channel to query
+    costs, get optimization recommendations, and rewrite expensive prompts —
+    all without leaving Slack.
+
+features:
+  bot_user:
+    display_name: AI FinOps
+    always_online: false
+
+  slash_commands:
+    - command: /finops
+      url: YOUR_BASE_URL/api/slack/commands
+      description: AI FinOps slash commands (cost, insights, optimize, anomalies, digest)
+      usage_hint: "cost | insights | optimize <prompt> | anomalies | digest | help"
+      should_escape: false
+
+oauth_config:
+  redirect_urls:
+    - YOUR_BASE_URL/api/slack/oauth/callback
+  scopes:
+    bot:
+      - commands
+      - chat:write
+      - users:read
+      - app_mentions:read
+
+settings:
+  event_subscriptions:
+    request_url: YOUR_BASE_URL/api/slack/events
+    bot_events:
+      - app_mention
+
+  interactivity:
+    is_enabled: false
+
+  org_deploy_enabled: false
+  socket_mode_enabled: false
+  token_rotation_enabled: false

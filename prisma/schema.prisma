@@ -155,6 +155,80 @@ model PromptAnnotation {
   @@index([status])
 }
 
+// Pinned moment-in-time copy of the insights output. Lets users
+// compare "this month vs last month" or capture a baseline before
+// applying a recommendation campaign.
+model InsightsSnapshot {
+  id          String   @id @default(cuid())
+  label       String
+  note        String?
+  period      String // '24h' | '7d' | '30d' | 'all'
+  capturedAt  DateTime @default(now())
+  // Full InsightsResponse object as JSON string. We snapshot it raw
+  // rather than re-derive, so the data is immutable even if the
+  // underlying logs evolve.
+  payloadJson String
+  capturedBy  String? // free-form
+
+  @@index([capturedAt])
+  @@index([period])
+}
+
+// Audit trail of every mutating dashboard action. Append-only.
+//
+// `action` enum strings: 'budget.create' | 'budget.update' | 'budget.delete'
+//   | 'credential.create' | 'credential.delete'
+//   | 'anomaly.resolve' | 'anomaly.create'
+//   | 'allocation.create' | 'allocation.update' | 'allocation.delete'
+//   | 'apikey.create' | 'apikey.revoke' | 'apikey.update'
+//   | 'pricing.update'
+//   | 'demo.seed' | 'demo.clear'
+//   | 'import.run'
+//   | 'annotation.upsert' | 'annotation.delete'
+//   | 'snapshot.capture' | 'snapshot.delete'
+//   | 'auth.login' | 'auth.logout' | 'auth.failed'
+model AuditLogEntry {
+  id        String   @id @default(cuid())
+  actor     String? // free-form (email, IP, "api-key:<id>", "cron", etc.)
+  action    String
+  // What was acted on — e.g. budget id, credential id, anomaly id.
+  targetId  String?
+  // What kind of thing — 'budget' | 'credential' | etc.
+  targetKind String?
+  // JSON snapshot of the before/after, or the full request body. Capped at 8KB.
+  payload   String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([action])
+  @@index([targetKind, targetId])
+}
+
+// Connected Slack workspace. One row per workspace that installed the
+// AI FinOps Slack app via OAuth. Stores tokens for slash-command +
+// event handling.
+model SlackInstallation {
+  id                String   @id @default(cuid())
+  teamId            String   @unique
+  teamName          String?
+  // Bot user OAuth token (xoxb-...). Encrypted at rest using the same
+  // FINOPS_ENCRYPTION_KEY scheme as Credential.
+  accessTokenBlob   String
+  accessTokenIv     String
+  accessTokenTag    String
+  botUserId         String
+  appId             String?
+  authedUserId      String?
+  defaultChannelId  String?
+  installedAt       DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  isActive          Boolean  @default(true)
+
+  @@index([isActive])
+}
+
 // Rules that re-allocate shared / multi-team LLM costs to specific
 // teams or apps. Example: 30% of `shared-llm-pool` cost goes to
 // marketing, 50% to engineering, 20% to support.

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { Budget, Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { evaluateBudget, type BudgetStatus } from '@/lib/budget';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,6 +112,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       ? await prisma.budget.update({ where: { id: existing.id }, data })
       : await prisma.budget.create({ data });
 
+    await recordAudit({
+      req,
+      action: existing ? 'budget.update' : 'budget.create',
+      targetKind: 'budget',
+      targetId: saved.id,
+      payload: body,
+    });
+
     const mtd = await monthToDateFor(saved);
     return NextResponse.json({ item: evaluateBudget(saved, mtd) });
   } catch (err) {
@@ -127,6 +136,12 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
   }
   try {
     await prisma.budget.delete({ where: { id: parsed.data.id } });
+    await recordAudit({
+      req,
+      action: 'budget.delete',
+      targetKind: 'budget',
+      targetId: parsed.data.id,
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'internal error';
