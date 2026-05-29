@@ -1,0 +1,38 @@
+# Files / directories not needed for the Vercel build.
+# Vercel uploads everything by default (even .gitignored files), so we explicitly
+# list build artifacts and side-project workspaces here.
+
+# Node deps — Vercel runs `npm install` server-side.
+node_modules
+
+# Next.js build output — Vercel builds it fresh on every deploy.
+.next
+out
+
+# Local Electron release artifacts (1+ GB of .dmg / .app / .zip).
+release
+dist-electron
+
+# Side-project workspaces that ship separately.
+electron
+extension
+mcp-server
+sdk
+
+# Tests / docs aren't needed at runtime.
+tests
+docs
+coverage
+
+# Misc build / log noise.
+*.log
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+tsconfig.tsbuildinfo
+
+# Don't ship local prisma data file (if any).
+prisma/dev.db
+prisma/dev.db-journal
