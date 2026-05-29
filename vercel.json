@@ -7,8 +7,8 @@
     "NEXT_TELEMETRY_DISABLED": "1"
   },
   "crons": [
-    { "path": "/api/cron/anomaly-check", "schedule": "0 * * * *" },
-    { "path": "/api/cron/scheduled-imports", "schedule": "0 */6 * * *" },
+    { "path": "/api/cron/anomaly-check", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/scheduled-imports", "schedule": "0 6 * * *" },
     { "path": "/api/cron/digest-broadcast", "schedule": "0 14 * * 1" }
   ]
 }
