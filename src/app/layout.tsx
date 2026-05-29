@@ -93,23 +93,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 What is this?
               </Link>
-              {/* Meta links — moved out of the top nav because they're about
-                  the tool, not about reducing AI cost. The floating Feedback
-                  button stays globally accessible via <FeedbackButton/>. */}
-              <span className="text-borderBright" aria-hidden>·</span>
-              <Link
-                href="/changelog"
-                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
-              >
-                Changelog
-              </Link>
-              <span className="text-borderBright" aria-hidden>·</span>
-              <Link
-                href="/roadmap"
-                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
-              >
-                Roadmap
-              </Link>
+              {/* Changelog + Roadmap removed from the footer — these are
+                  tool-meta pages that don't belong in a regular user's
+                  field of view. Pages still exist at /changelog and /roadmap
+                  for anyone who knows to ask for them directly.
+                  Feedback stays because submitting feedback IS an action a
+                  user might want to take. */}
               <span className="text-borderBright" aria-hidden>·</span>
               <Link
                 href="/feedback"
