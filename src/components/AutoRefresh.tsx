@@ -43,20 +43,22 @@ export function AutoRefresh({ intervalSeconds = 60 }: AutoRefreshProps) {
     };
   }, [router, intervalSeconds, visible]);
 
-  // Subtle indicator. Kept dim so it doesn't compete with real content,
-  // but visible enough that users can tell auto-refresh is on.
+  // Status indicator. Sized + colored to match HealthIndicator and
+  // StreamingPulse — same text-xs, same gap-2, same w-2 h-2 dot, same
+  // pulse-glow animation, same text-good green when active. font-medium
+  // matches the visual weight of the other two indicators in the footer.
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-[11px] text-muted/70"
+      className="inline-flex items-center gap-2 text-xs"
       aria-live="polite"
     >
       <span
-        className={`inline-block w-1.5 h-1.5 rounded-full ${
-          visible ? 'bg-good animate-pulse' : 'bg-muted'
+        className={`inline-block w-2 h-2 rounded-full ${
+          visible ? 'bg-good pulse-glow' : 'bg-muted'
         }`}
         aria-hidden="true"
       />
-      <span>
+      <span className={visible ? 'text-good font-medium' : 'text-muted'}>
         {visible ? `Auto-refresh: ${intervalSeconds}s` : 'Paused (tab hidden)'}
       </span>
     </span>
