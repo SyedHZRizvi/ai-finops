@@ -11,6 +11,11 @@ export type SupportedProvider =
   | 'azure'
   | 'bedrock'
   | 'vertex'
+  | 'together'
+  | 'replicate'
+  | 'groq'
+  | 'mistral'
+  | 'cohere'
   | 'csv';
 
 export interface ImporterContext {

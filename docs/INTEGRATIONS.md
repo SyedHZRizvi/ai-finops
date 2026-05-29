@@ -252,11 +252,18 @@ For closed environments, the path is always: **use Studio to craft the prompt, p
 ## Getting admin credentials for hosted-cloud providers
 
 The Anthropic and OpenAI importers each pull from a first-party admin API,
-so a single secret is enough. The three hosted-cloud providers below
-(Bedrock, Vertex AI, Azure OpenAI) do not expose per-call admin endpoints —
-their authoritative usage record lives in the cloud's billing system.
-Native importers for the billing APIs are on the roadmap; in the meantime,
-all three accept the **CSV upload** path on the dashboard.
+so a single secret is enough. The three hosted-cloud providers in the
+first block below (Bedrock, Vertex AI, Azure OpenAI) do not expose
+per-call admin endpoints — their authoritative usage record lives in the
+cloud's billing system. Native importers for those billing APIs are on
+the roadmap; in the meantime, all three accept the **CSV upload** path
+on the dashboard.
+
+The five LLM-as-a-service providers in the second block (Replicate,
+Together AI, Groq, Mistral, Cohere) are covered separately at the end of
+this section. Replicate has a working native importer; the other four
+validate the API key against a public probe endpoint and steer you to
+CSV upload because they do not expose a public usage admin API.
 
 ### AWS Bedrock
 
@@ -358,3 +365,113 @@ subscription. Paste the resulting credential blob on the dashboard:
 metadata you have not tagged on the Cognitive Services resource. Azure
 Cost Management groups by ResourceId, so naming your deployments
 consistently helps a lot when reconciling spend across teams.
+
+### Replicate
+
+**Status:** REAL native importer. Pulls per-day, per-model token and cost
+rows from `GET https://api.replicate.com/v1/account/usage`.
+
+**Where to get the API key:**
+1. Sign in to <https://replicate.com>.
+2. Open <https://replicate.com/account/api-tokens>.
+3. Click **Create token**. Give it a descriptive label (e.g.,
+   `ai-finops-import`). Replicate tokens look like `r8_...`.
+4. Paste the raw token into the dashboard's **Add a connector** form
+   with provider `Replicate`. No JSON wrapper required.
+
+**Scope:** the token must belong to the account that owns the billing
+record (organization tokens read the org's usage; personal tokens read
+your personal account). No additional scope flags are exposed by
+Replicate; any account-level token can read `/v1/account/usage`.
+
+**Limitations:** Replicate bills image / audio / video models by hardware
+runtime, not tokens. For those rows the importer emits `inputTokens =
+outputTokens = 0` and surfaces a warning. Cost totals remain accurate;
+only token rollups under-report for non-text models.
+
+### Together AI
+
+**Status:** STUB. Together AI does not currently expose a public usage
+admin API, so this importer only validates the key against
+`GET https://api.together.xyz/v1/models` and then steers you to CSV
+upload.
+
+**Where to get the API key:**
+1. Sign in to <https://api.together.ai>.
+2. Open **Settings → API Keys** (<https://api.together.ai/settings/api-keys>).
+3. Click **Create new key**.
+4. Paste the raw key into the dashboard.
+
+**Scope:** any active Together AI key with read access to the models
+catalog is sufficient for validation.
+
+**CSV path (works today):**
+1. Open <https://api.together.ai/settings/billing>.
+2. Export the **Usage** report for your desired date range as CSV.
+3. On the dashboard, open the **CSV import** card and paste the contents.
+
+### Groq
+
+**Status:** STUB. Groq does not currently expose a public usage admin
+API, so this importer only validates the key against
+`GET https://api.groq.com/openai/v1/models` and then steers you to CSV
+upload.
+
+**Where to get the API key:**
+1. Sign in to <https://console.groq.com>.
+2. Open <https://console.groq.com/keys>.
+3. Click **Create API Key**. Groq keys look like `gsk_...`.
+4. Paste the raw key into the dashboard.
+
+**Scope:** any active Groq key with access to the OpenAI-compatible
+surface is sufficient. Free-tier keys validate; only billing-eligible
+accounts have usable usage data in the dashboard export.
+
+**CSV path (works today):**
+1. Open <https://console.groq.com/settings/billing>.
+2. Use the **Usage** tab to export a per-day breakdown as CSV.
+3. On the dashboard, open the **CSV import** card and paste the contents.
+
+### Mistral La Plateforme
+
+**Status:** STUB. Mistral's billing UI exposes per-day token rollups but
+there is no stable public usage admin API, so this importer only
+validates the key against `GET https://api.mistral.ai/v1/models` and then
+steers you to CSV upload.
+
+**Where to get the API key:**
+1. Sign in to <https://console.mistral.ai>.
+2. Open <https://console.mistral.ai/api-keys/>.
+3. Click **Create new key**.
+4. Paste the raw key into the dashboard.
+
+**Scope:** any active La Plateforme key with permission to list models
+is sufficient for validation.
+
+**CSV path (works today):**
+1. Open <https://console.mistral.ai/billing/>.
+2. Export the **Usage** report for your desired date range as CSV.
+3. On the dashboard, open the **CSV import** card and paste the contents.
+
+### Cohere
+
+**Status:** STUB. Cohere's dashboard exposes per-day token rollups but
+there is no public usage admin API, so this importer only validates the
+key against `GET https://api.cohere.com/v1/models` and then steers you
+to CSV upload.
+
+**Where to get the API key:**
+1. Sign in to <https://dashboard.cohere.com>.
+2. Open <https://dashboard.cohere.com/api-keys>.
+3. Click **New Production Key** (trial keys may not have the `models`
+   scope and will fail the validation probe).
+4. Paste the raw key into the dashboard.
+
+**Scope:** a production key with the default scopes is sufficient. Trial
+keys validate against the chat / embed endpoints but may be rejected by
+`/v1/models`.
+
+**CSV path (works today):**
+1. Open <https://dashboard.cohere.com/billing/usage>.
+2. Export the **Usage** breakdown for your desired date range as CSV.
+3. On the dashboard, open the **CSV import** card and paste the contents.

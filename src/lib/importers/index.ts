@@ -16,6 +16,11 @@ import { csvImporter } from './csv';
 import { bedrockImporter } from './bedrock';
 import { vertexImporter } from './vertex';
 import { azureImporter } from './azure';
+import { togetherImporter } from './together';
+import { replicateImporter } from './replicate';
+import { groqImporter } from './groq';
+import { mistralImporter } from './mistral';
+import { cohereImporter } from './cohere';
 
 // `google` is the legacy slot for the Google Cloud / Vertex AI importer;
 // it now resolves to the same stub as the canonical `vertex` provider so
@@ -35,6 +40,11 @@ const REGISTRY: Record<SupportedProvider, Importer> = {
   vertex: vertexImporter,
   azure: azureImporter,
   google: googleAlias,
+  together: togetherImporter,
+  replicate: replicateImporter,
+  groq: groqImporter,
+  mistral: mistralImporter,
+  cohere: cohereImporter,
 };
 
 export function getImporter(provider: SupportedProvider): Importer {
@@ -57,5 +67,10 @@ export function listImporters(): ImporterListEntry[] {
     { provider: 'bedrock', label: 'Amazon Bedrock (Cost Explorer)', implemented: false },
     { provider: 'vertex', label: 'Google Vertex AI (Cloud Billing)', implemented: false },
     { provider: 'azure', label: 'Azure OpenAI (Cost Management)', implemented: false },
+    { provider: 'replicate', label: 'Replicate (account usage)', implemented: true },
+    { provider: 'together', label: 'Together AI (validate only)', implemented: false },
+    { provider: 'groq', label: 'Groq (validate only)', implemented: false },
+    { provider: 'mistral', label: 'Mistral La Plateforme (validate only)', implemented: false },
+    { provider: 'cohere', label: 'Cohere (validate only)', implemented: false },
   ];
 }

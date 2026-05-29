@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,6 +104,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const updated = await prisma.anomalyEvent.update({
       where: { id: parsed.data.id },
       data: { resolvedAt: new Date() },
+    });
+    await recordAudit({
+      req,
+      action: 'anomaly.resolve',
+      targetKind: 'anomaly',
+      targetId: updated.id,
+      payload: { kind: updated.kind, severity: updated.severity },
     });
     return NextResponse.json({
       item: { ...updated, metadata: safeParse(updated.metadata) },

@@ -415,6 +415,17 @@ export function Tour() {
       aria-modal="true"
       className="fixed inset-0 z-[100] pointer-events-none"
     >
+      {/* Screen-reader announcement of the active step. `aria-live="polite"`
+          + a key forcing re-render makes assistive tech announce each title
+          change without trampling the user's current focus. */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+        key={stepIndex}
+      >
+        Step {stepIndex + 1} of {totalSteps}: {step.title}. {step.body}
+      </div>
       {/* Backdrop / spotlight layer. */}
       {showSpotlight && targetRect ? (
         <div

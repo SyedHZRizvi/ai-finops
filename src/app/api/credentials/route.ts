@@ -14,6 +14,11 @@ const ProviderSchema = z.enum([
   'gateway',
   'bedrock',
   'vertex',
+  'together',
+  'replicate',
+  'groq',
+  'mistral',
+  'cohere',
 ]);
 
 const UpsertSchema = z.object({

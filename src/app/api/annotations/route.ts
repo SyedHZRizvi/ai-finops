@@ -22,6 +22,7 @@ import {
   type AnnotationStatus,
 } from '@/lib/annotations';
 import { prisma } from '@/lib/db';
+import { recordAudit } from '@/lib/audit';
 
 function coerceStatus(value: string): AnnotationStatus {
   return (ANNOTATION_STATUSES as readonly string[]).includes(value)
@@ -134,6 +135,18 @@ export async function POST(req: NextRequest) {
       status: parsed.data.status as Annotation['status'],
       note: parsed.data.note ?? null,
       createdBy: parsed.data.createdBy,
+    });
+
+    await recordAudit({
+      req,
+      action: 'annotation.upsert',
+      targetKind: 'annotation',
+      targetId: saved.promptLogId,
+      payload: {
+        promptLogId: saved.promptLogId,
+        status: saved.status,
+        hasNote: typeof saved.note === 'string' && saved.note.length > 0,
+      },
     });
 
     return NextResponse.json({ item: serializeAnnotation(saved) });

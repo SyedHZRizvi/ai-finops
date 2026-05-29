@@ -18,6 +18,11 @@ const ProviderSchema = z.enum([
   'azure',
   'bedrock',
   'vertex',
+  'together',
+  'replicate',
+  'groq',
+  'mistral',
+  'cohere',
 ]);
 
 const BodySchema = z

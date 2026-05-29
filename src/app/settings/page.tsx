@@ -1,6 +1,7 @@
 import { PricingTable } from '@/components/PricingTable';
 import { DemoModeToggle } from '@/components/DemoModeToggle';
 import { TourButton } from '@/components/TourButton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { ModelPricing } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -55,6 +56,16 @@ export default async function SettingsPage() {
           </div>
         </div>
         <TourButton />
+      </div>
+
+      <div className="card card-pad flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <div className="label">Appearance</div>
+          <div className="text-sm text-inkDim mt-1">
+            Choose light, dark, or follow your OS preference.
+          </div>
+        </div>
+        <ThemeToggle label="" />
       </div>
     </div>
   );

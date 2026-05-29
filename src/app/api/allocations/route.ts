@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import type { AllocationRuleData } from '@/lib/allocation';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -129,6 +130,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       },
     });
     const data = toData(created);
+    await recordAudit({
+      req,
+      action: 'allocation.create',
+      targetKind: 'allocation',
+      targetId: created.id,
+      payload: parsed.data,
+    });
     return NextResponse.json({ item: data });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'internal error';
@@ -174,6 +182,13 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       where: { id: idParsed.data.id },
       data,
     });
+    await recordAudit({
+      req,
+      action: 'allocation.update',
+      targetKind: 'allocation',
+      targetId: updated.id,
+      payload: parsed.data,
+    });
     return NextResponse.json({ item: toData(updated) });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'internal error';
@@ -199,6 +214,12 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     const updated = await prisma.allocationRule.update({
       where: { id: parsed.data.id },
       data: { isActive: false },
+    });
+    await recordAudit({
+      req,
+      action: 'allocation.delete',
+      targetKind: 'allocation',
+      targetId: updated.id,
     });
     return NextResponse.json({ ok: true, item: toData(updated) });
   } catch (err) {

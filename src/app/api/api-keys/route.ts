@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { generateToken } from '@/lib/apiKeys';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -127,6 +128,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         scopeApps: scopeAppsJson,
         expiresAt,
         createdBy: body.createdBy ?? null,
+      },
+    });
+
+    // NB: never record the raw token. label + prefix are safe to retain.
+    await recordAudit({
+      req,
+      action: 'apikey.create',
+      targetKind: 'apikey',
+      targetId: created.id,
+      payload: {
+        label: created.label,
+        prefix: created.prefix,
+        scopeApps: parseScopeApps(created.scopeApps),
+        expiresAt: created.expiresAt ? created.expiresAt.toISOString() : null,
       },
     });
 

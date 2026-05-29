@@ -9,11 +9,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteAnnotation } from '@/lib/annotations';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { promptLogId: string } },
 ) {
   try {
@@ -22,6 +23,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'missing promptLogId' }, { status: 400 });
     }
     await deleteAnnotation(id);
+    await recordAudit({
+      req,
+      action: 'annotation.delete',
+      targetKind: 'annotation',
+      targetId: id,
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'internal error';

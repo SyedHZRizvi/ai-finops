@@ -285,9 +285,15 @@ export function CommandPalette() {
     <div
       role="dialog"
       aria-label="Command palette"
+      aria-labelledby="command-palette-title"
       aria-modal="true"
       className="fixed inset-0 z-[120] flex items-start justify-center pt-[12vh] px-4"
     >
+      {/* Visually hidden title — gives `aria-labelledby` something to point at
+          while keeping the visible UI dedicated to the search input. */}
+      <h2 id="command-palette-title" className="sr-only">
+        Command palette
+      </h2>
       {/* Backdrop — click to close. */}
       <button
         type="button"

@@ -26,6 +26,9 @@ const items = [
   { href: '/slack', label: 'Slack' },
   { href: '/audit', label: 'Audit' },
   { href: '/api-docs', label: 'API' },
+  { href: '/changelog', label: 'Changelog' },
+  { href: '/roadmap', label: 'Roadmap' },
+  { href: '/feedback', label: 'Feedback' },
 ];
 
 export function Nav() {
@@ -37,9 +40,9 @@ export function Nav() {
   }
 
   return (
-    <header className="border-b border-border bg-panel/60 backdrop-blur-xl sticky top-0 z-20">
+    <header className="border-b border-border bg-panel/60 backdrop-blur-xl sticky top-0 z-20" role="banner">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
-        <Link href="/" className="flex items-center gap-2.5 group shrink-0">
+        <Link href="/" className="flex items-center gap-2.5 group shrink-0 focus-ring" aria-label="AI FinOps home">
           <span className="relative w-8 h-8 rounded-xl bg-brand-gradient shadow-glow flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
             <svg
               viewBox="0 0 24 24"
@@ -57,18 +60,19 @@ export function Nav() {
             </svg>
           </span>
           <span className="font-bold tracking-tight text-base">AI FinOps</span>
-          <span className="chip chip-brand ml-1 hidden sm:inline-flex">beta</span>
+          <span className="chip chip-brand ml-1 hidden sm:inline-flex" aria-label="beta">beta</span>
         </Link>
 
         {/* Desktop nav — wraps gracefully when items don't fit */}
-        <nav className="hidden lg:flex items-center gap-1 flex-wrap justify-end">
+        <nav className="hidden lg:flex items-center gap-1 flex-wrap justify-end" aria-label="Primary">
           {items.map((it) => {
             const active = isActive(it.href);
             return (
               <Link
                 key={it.href}
                 href={it.href}
-                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-150 ${
+                aria-current={active ? 'page' : undefined}
+                className={`px-3 py-1.5 rounded-xl text-sm font-medium transition-all duration-150 focus-ring ${
                   active
                     ? 'bg-brand/15 text-brandLight border border-brand/30'
                     : 'text-muted hover:text-ink hover:bg-panel2 border border-transparent'
@@ -92,7 +96,8 @@ export function Nav() {
             onClick={() => setOpen((v) => !v)}
             aria-label="Toggle navigation"
             aria-expanded={open}
-            className="p-2 rounded-lg border border-border bg-panel2 hover:bg-panel3"
+            aria-controls="mobile-nav"
+            className="p-2 rounded-lg border border-border bg-panel2 hover:bg-panel3 focus-ring"
           >
             <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
               {open ? (
@@ -114,8 +119,8 @@ export function Nav() {
 
       {/* Mobile drawer */}
       {open && (
-        <div className="lg:hidden border-t border-border bg-panel">
-          <nav className="max-w-7xl mx-auto px-4 sm:px-6 py-3 grid grid-cols-2 gap-1">
+        <div id="mobile-nav" className="lg:hidden border-t border-border bg-panel">
+          <nav className="max-w-7xl mx-auto px-4 sm:px-6 py-3 grid grid-cols-2 gap-1" aria-label="Primary mobile">
             {items.map((it) => {
               const active = isActive(it.href);
               return (
@@ -123,7 +128,8 @@ export function Nav() {
                   key={it.href}
                   href={it.href}
                   onClick={() => setOpen(false)}
-                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 ${
+                  aria-current={active ? 'page' : undefined}
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 focus-ring ${
                     active
                       ? 'bg-brand/15 text-brandLight border border-brand/30'
                       : 'text-muted hover:text-ink hover:bg-panel2 border border-transparent'

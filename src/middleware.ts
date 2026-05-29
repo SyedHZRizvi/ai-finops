@@ -53,11 +53,15 @@ export async function middleware(req: NextRequest): Promise<NextResponse> {
 
   // The login page and its API endpoint must always be reachable, otherwise
   // there's no way to acquire a cookie. Logout also bypasses (no-op when
-  // already signed out).
+  // already signed out). Magic-link send + redemption are also bootstrap
+  // routes — the user can't have a session cookie yet when they request a
+  // magic link or click the link in their email.
   if (
     pathname === '/login' ||
     pathname === '/api/auth/login' ||
-    pathname === '/api/auth/logout'
+    pathname === '/api/auth/logout' ||
+    pathname === '/api/auth/magic-link' ||
+    pathname === '/magic'
   ) {
     return NextResponse.next();
   }

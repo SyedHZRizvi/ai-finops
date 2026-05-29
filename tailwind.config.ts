@@ -1,40 +1,47 @@
 import type { Config } from 'tailwindcss';
 
+// Tailwind colors map to CSS custom properties defined in src/app/globals.css.
+// The same utility class (text-muted, bg-panel, etc.) automatically picks the
+// dark or light value based on `<html data-theme="...">`.
+//
+// The brand gradient keeps its literal hex values because the purple-to-cyan
+// gradient is a brand fixture that reads well on both light and dark surfaces.
+
 const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        // Base — deeper black with a subtle blue undertone
-        bg: '#070810',
-        panel: '#0f1018',
-        panel2: '#181a26',
-        panel3: '#1f2230',
-        border: '#262a3a',
-        borderBright: '#363b50',
-        ink: '#f3f4f8',
-        inkDim: '#c9cbd6',
-        muted: '#7b829a',
-        // Brand — vivid purple-to-cyan gradient pair
-        brand: '#8b5cf6',
-        brandLight: '#a78bfa',
-        brand2: '#22d3ee',
-        brand2Light: '#67e8f9',
-        // Status — saturated, dark-mode-tuned
-        good: '#22c55e',
-        goodGlow: '#15803d',
-        warn: '#f59e0b',
-        warnGlow: '#b45309',
-        bad: '#ef4444',
-        badGlow: '#991b1b',
-        // Accent — for category color coding
-        pink: '#ec4899',
-        blue: '#3b82f6',
-        lime: '#84cc16',
-        amber: '#f59e0b',
-        rose: '#f43f5e',
-        teal: '#14b8a6',
-        indigo: '#6366f1',
+        // Base — flips between dark navy and warm off-white via CSS vars.
+        bg: 'var(--color-bg)',
+        panel: 'var(--color-panel)',
+        panel2: 'var(--color-panel2)',
+        panel3: 'var(--color-panel3)',
+        border: 'var(--color-border)',
+        borderBright: 'var(--color-border-bright)',
+        ink: 'var(--color-ink)',
+        inkDim: 'var(--color-ink-dim)',
+        muted: 'var(--color-muted)',
+        // Brand — vivid purple-to-cyan; desaturated for light mode.
+        brand: 'var(--color-brand)',
+        brandLight: 'var(--color-brand-light)',
+        brand2: 'var(--color-brand2)',
+        brand2Light: 'var(--color-brand2-light)',
+        // Status — tuned darker in light mode for AA contrast.
+        good: 'var(--color-good)',
+        goodGlow: 'var(--color-good-glow)',
+        warn: 'var(--color-warn)',
+        warnGlow: 'var(--color-warn-glow)',
+        bad: 'var(--color-bad)',
+        badGlow: 'var(--color-bad-glow)',
+        // Accent — for category color coding.
+        pink: 'var(--color-pink)',
+        blue: 'var(--color-blue)',
+        lime: 'var(--color-lime)',
+        amber: 'var(--color-amber)',
+        rose: 'var(--color-rose)',
+        teal: 'var(--color-teal)',
+        indigo: 'var(--color-indigo)',
       },
       backgroundImage: {
         'brand-gradient': 'linear-gradient(135deg, #8b5cf6 0%, #22d3ee 100%)',
@@ -50,8 +57,9 @@ const config: Config = {
         'glow-cyan': '0 0 40px -10px rgba(34, 211, 238, 0.5)',
         'glow-green': '0 0 40px -10px rgba(34, 197, 94, 0.4)',
         'glow-amber': '0 0 40px -10px rgba(245, 158, 11, 0.4)',
-        card: '0 2px 8px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.02) inset',
-        'card-hover': '0 8px 24px rgba(139, 92, 246, 0.15), 0 0 0 1px rgba(139,92,246,0.2) inset',
+        // card + card-hover read from CSS vars so light mode gets a softer shadow.
+        card: 'var(--shadow-card)',
+        'card-hover': 'var(--shadow-card-hover)',
       },
       fontFamily: {
         sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto'],

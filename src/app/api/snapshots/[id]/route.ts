@@ -12,6 +12,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { deleteSnapshot, getSnapshot } from '@/lib/snapshots';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,7 +37,7 @@ export async function GET(
 }
 
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ): Promise<NextResponse> {
   try {
@@ -45,6 +46,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'missing id' }, { status: 400 });
     }
     await deleteSnapshot(id);
+    await recordAudit({
+      req,
+      action: 'snapshot.delete',
+      targetKind: 'snapshot',
+      targetId: id,
+    });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'internal error';

@@ -19,6 +19,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/db';
 import { ensurePricingLoaded } from '@/lib/pricing';
 import { generateDemoPrompts, type DemoPromptRow } from '@/lib/demoData';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -85,6 +86,12 @@ export async function POST(req: NextRequest) {
       const result = await prisma.promptLog.deleteMany({
         where: { metadata: { contains: DEMO_MARKER } },
       });
+      await recordAudit({
+        req,
+        action: 'demo.clear',
+        targetKind: 'demo',
+        payload: { deleted: result.count },
+      });
       return NextResponse.json({ deleted: result.count });
     }
 
@@ -101,6 +108,12 @@ export async function POST(req: NextRequest) {
     const existing = await countDemoRows();
     const toGenerate = Math.max(0, target - existing);
     if (toGenerate === 0) {
+      await recordAudit({
+        req,
+        action: 'demo.seed',
+        targetKind: 'demo',
+        payload: { inserted: 0, skipped: existing, target },
+      });
       return NextResponse.json({
         inserted: 0,
         skipped: existing,
@@ -121,6 +134,13 @@ export async function POST(req: NextRequest) {
         await prisma.promptLog.create({ data: row });
       }
     }
+
+    await recordAudit({
+      req,
+      action: 'demo.seed',
+      targetKind: 'demo',
+      payload: { inserted: rows.length, skipped: existing, target },
+    });
 
     return NextResponse.json({
       inserted: rows.length,

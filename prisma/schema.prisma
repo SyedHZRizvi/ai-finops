@@ -206,6 +206,53 @@ model AuditLogEntry {
   @@index([targetKind, targetId])
 }
 
+// Single-use magic-link login token. Emailed to the user; clicking
+// the link verifies the token + mints the standard `finops_session`
+// cookie. Tokens are stored as SHA-256 hashes (never plaintext); they
+// expire after 15 minutes and are deleted after a single successful
+// use.
+model MagicLinkToken {
+  id         String   @id @default(cuid())
+  email      String
+  // SHA-256 hash of the raw token (hex). Raw token only exists in the
+  // email body — never in the database.
+  hashedToken String  @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+  ip         String?
+  userAgent  String?
+
+  @@index([email])
+  @@index([expiresAt])
+}
+
+// User-submitted feedback collected via the floating "Give feedback"
+// widget. Pure free-form notes; no PII enforcement (assume internal
+// org use).
+model Feedback {
+  id        String   @id @default(cuid())
+  // 'bug' | 'feature-request' | 'praise' | 'question' | 'other'
+  kind      String
+  // The actual feedback text. Capped at 4000 chars.
+  message   String
+  // What page / context the user was on when they submitted.
+  path      String?
+  // 'open' | 'triaged' | 'addressed' | 'wont-do' | 'duplicate'
+  status    String   @default("open")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  ip        String?
+  userAgent String?
+  // Internal notes from the triage team (not shown to submitter).
+  triageNote String?
+
+  @@index([createdAt])
+  @@index([status])
+  @@index([kind])
+}
+
 // Connected Slack workspace. One row per workspace that installed the
 // AI FinOps Slack app via OAuth. Stores tokens for slash-command +
 // event handling.

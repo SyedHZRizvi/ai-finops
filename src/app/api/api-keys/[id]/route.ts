@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/db';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +45,7 @@ function parseScopeApps(raw: string | null): string[] | null {
  * a direct DB operation by an operator.
  */
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } },
 ): Promise<NextResponse> {
   try {
@@ -61,6 +62,14 @@ export async function DELETE(
     const updated = await prisma.apiKey.update({
       where: { id },
       data: { isActive: false },
+    });
+
+    await recordAudit({
+      req,
+      action: 'apikey.revoke',
+      targetKind: 'apikey',
+      targetId: updated.id,
+      payload: { label: updated.label, prefix: updated.prefix },
     });
 
     return NextResponse.json({
@@ -140,6 +149,18 @@ export async function PATCH(
     const updated = await prisma.apiKey.update({
       where: { id },
       data,
+    });
+
+    await recordAudit({
+      req,
+      action: 'apikey.update',
+      targetKind: 'apikey',
+      targetId: updated.id,
+      payload: {
+        label: updated.label,
+        isActive: updated.isActive,
+        scopeApps: parseScopeApps(updated.scopeApps),
+      },
     });
 
     return NextResponse.json({

@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { captureSnapshot, listSnapshots } from '@/lib/snapshots';
 import { ensurePricingLoaded } from '@/lib/pricing';
+import { recordAudit } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 
@@ -88,6 +89,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       note: body.note,
       period: body.period,
       capturedBy: body.capturedBy,
+    });
+    await recordAudit({
+      req,
+      action: 'snapshot.capture',
+      targetKind: 'snapshot',
+      targetId: item.id,
+      payload: { label: item.label, period: item.period },
     });
     return NextResponse.json({ item }, { status: 201 });
   } catch (err) {

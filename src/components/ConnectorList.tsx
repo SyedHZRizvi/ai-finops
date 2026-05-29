@@ -9,7 +9,12 @@ type ProviderId =
   | 'azure'
   | 'gateway'
   | 'bedrock'
-  | 'vertex';
+  | 'vertex'
+  | 'together'
+  | 'replicate'
+  | 'groq'
+  | 'mistral'
+  | 'cohere';
 
 export interface CredentialDTO {
   id: string;
@@ -53,6 +58,11 @@ const PROVIDER_ACCENT: Record<string, { dot: string; bg: string; border: string;
   gateway: { dot: '#8b5cf6', bg: 'bg-brand/10', border: 'border-brand/30', text: 'text-brandLight' },
   bedrock: { dot: '#f59e0b', bg: 'bg-amber/10', border: 'border-amber/30', text: 'text-amber' },
   vertex: { dot: '#3b82f6', bg: 'bg-blue/10', border: 'border-blue/30', text: 'text-blue' },
+  together: { dot: '#14b8a6', bg: 'bg-teal/10', border: 'border-teal/30', text: 'text-teal' },
+  replicate: { dot: '#f43f5e', bg: 'bg-rose/10', border: 'border-rose/30', text: 'text-rose' },
+  groq: { dot: '#f59e0b', bg: 'bg-amber/10', border: 'border-amber/30', text: 'text-amber' },
+  mistral: { dot: '#3b82f6', bg: 'bg-blue/10', border: 'border-blue/30', text: 'text-blue' },
+  cohere: { dot: '#84cc16', bg: 'bg-lime/10', border: 'border-lime/30', text: 'text-lime' },
 };
 
 // Human-readable copy for each provider, used by the Add Connector form.
@@ -87,9 +97,42 @@ const PROVIDER_COPY: Record<
     description: 'OpenAI models hosted in Azure.',
     keyPlaceholder: '{"tenantId":"...","clientId":"...","clientSecret":"...","subscriptionId":"..."}',
   },
+  together: {
+    displayLabel: 'Together AI',
+    description: 'Open-source models (Llama, Mixtral, Qwen, etc.) on Together AI.',
+    keyPlaceholder: 'Paste Together API key',
+  },
+  replicate: {
+    displayLabel: 'Replicate',
+    description: 'Image, audio, video, and text models on Replicate.',
+    keyPlaceholder: 'r8_...',
+  },
+  groq: {
+    displayLabel: 'Groq',
+    description: 'Low-latency Llama, Mixtral, and Qwen inference on Groq LPUs.',
+    keyPlaceholder: 'gsk_...',
+  },
+  mistral: {
+    displayLabel: 'Mistral La Plateforme',
+    description: 'Mistral, Mixtral, and Codestral models on La Plateforme.',
+    keyPlaceholder: 'Paste Mistral API key',
+  },
+  cohere: {
+    displayLabel: 'Cohere',
+    description: 'Command, Rerank, and Embed models on Cohere.',
+    keyPlaceholder: 'Paste Cohere API key',
+  },
 };
 
-const STUB_PROVIDERS = new Set(['bedrock', 'vertex', 'azure']);
+const STUB_PROVIDERS = new Set([
+  'bedrock',
+  'vertex',
+  'azure',
+  'together',
+  'groq',
+  'mistral',
+  'cohere',
+]);
 
 function getProviderAccent(provider: string) {
   return PROVIDER_ACCENT[provider] ?? { dot: '#7b829a', bg: 'bg-panel2', border: 'border-border', text: 'text-muted' };
