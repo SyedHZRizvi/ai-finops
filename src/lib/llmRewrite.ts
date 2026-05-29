@@ -276,7 +276,14 @@ async function callAnthropic(
   // Haiku is the right pick: tiny per-token cost, sub-2s latency for
   // prompts this small. Newer Sonnet / Opus would be overkill and would
   // slow the UX noticeably.
-  const model = 'claude-3-5-haiku-latest';
+  //
+  // Use a specific dated model identifier rather than a `-latest` alias.
+  // Anthropic doesn't guarantee that every model has a `-latest` alias
+  // resolved on every endpoint (the older `claude-3-5-haiku-latest` alias
+  // returned 404 in production when this code first shipped). Pinning to a
+  // dated version is more reliable and gives us reproducible behavior.
+  // claude-haiku-4-5 is the current-generation Haiku as of 2026.
+  const model = 'claude-haiku-4-5';
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
