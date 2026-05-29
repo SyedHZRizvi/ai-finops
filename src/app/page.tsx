@@ -10,7 +10,6 @@ import { PeriodSelect } from '@/components/PeriodSelect';
 import { EmptyState } from '@/components/EmptyState';
 import { ForecastCard } from '@/components/ForecastCard';
 import { BudgetBanner } from '@/components/BudgetBanner';
-import { AutoRefresh } from '@/components/AutoRefresh';
 import { ExportButton } from '@/components/ExportButton';
 import { DigestCard } from '@/components/DigestCard';
 import { LiveTicker } from '@/components/LiveTicker';
@@ -368,8 +367,12 @@ export default async function DashboardPage({
           )}
         </div>
       )}
-      {/* Soft-refresh the dashboard every 60s when the tab is visible. */}
-      {!apiUnreachable && <AutoRefresh intervalSeconds={60} />}
+      {/* AutoRefresh has moved to the global layout footer alongside the
+          Healthy / Live status indicators — it sits with the other status
+          chips so it doesn't appear as a stray standalone span at the
+          bottom-left of the dashboard. The 60s refresh still drives this
+          page via router.refresh() (which re-runs server components on
+          whichever page is mounted). */}
     </div>
   );
 }
