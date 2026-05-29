@@ -9,6 +9,7 @@ import { SignOutButton } from './SignOutButton';
 const items = [
   { href: '/', label: 'Dashboard' },
   { href: '/insights', label: 'Insights' },
+  { href: '/quality', label: 'Quality' },
   { href: '/prompts', label: 'Prompts' },
   { href: '/optimizer', label: 'Optimizer' },
   { href: '/studio', label: 'Studio' },

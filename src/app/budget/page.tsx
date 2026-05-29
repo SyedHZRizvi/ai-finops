@@ -1,5 +1,6 @@
 import { BudgetForm } from '@/components/BudgetForm';
 import { BudgetTable } from '@/components/BudgetTable';
+import { AppForecastTable } from '@/components/AppForecastTable';
 import { EmptyState } from '@/components/EmptyState';
 import type { BudgetStatus } from '@/lib/budget';
 
@@ -57,6 +58,17 @@ export default async function BudgetPage() {
       )}
 
       {items && items.length > 0 && <BudgetTable rows={items} />}
+
+      <div className="mt-4">
+        <h2 className="text-lg font-semibold tracking-tight mb-2">
+          Per-app forecasts
+        </h2>
+        <p className="text-sm text-muted mb-4">
+          Each app&apos;s month-to-date spend, projected month-end, and a
+          directional trend chip based on the last 14 days.
+        </p>
+        <AppForecastTable />
+      </div>
     </div>
   );
 }

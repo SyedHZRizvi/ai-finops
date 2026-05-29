@@ -14,6 +14,7 @@ import { AutoRefresh } from '@/components/AutoRefresh';
 import { ExportButton } from '@/components/ExportButton';
 import { DigestCard } from '@/components/DigestCard';
 import { LiveTicker } from '@/components/LiveTicker';
+import { AppTrendsCard } from '@/components/AppTrendsCard';
 
 export const dynamic = 'force-dynamic';
 
@@ -274,6 +275,9 @@ export default async function DashboardPage({
 
           {/* Live activity strip — streams new prompts and anomalies in real time. */}
           <LiveTicker />
+
+          {/* Top-5 apps with directional cost trend chips. */}
+          <AppTrendsCard />
 
           {/* Compact week-over-week digest preview at the bottom of the dashboard. */}
           <DigestCard />

@@ -74,6 +74,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Optimize
             </Link>
             <span className="text-borderBright" aria-hidden>·</span>
+            <Link
+              href="/welcome"
+              className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
+            >
+              What is this?
+            </Link>
+            <span className="text-borderBright" aria-hidden>·</span>
             <HealthIndicator />
             <span className="text-borderBright" aria-hidden>·</span>
             <StreamingPulse showLabel />
