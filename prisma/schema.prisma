@@ -118,6 +118,62 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
+// Per-app ingest tokens. The dashboard issues these; SDK callers use one
+// per application so different apps can be revoked independently and
+// last-used timestamps can be tracked.
+//
+// `hashedKey` stores a SHA-256 hash of the raw token; we never store the
+// raw value. The token is shown ONCE at creation and never recoverable.
+model ApiKey {
+  id         String    @id @default(cuid())
+  label      String
+  hashedKey  String    @unique
+  prefix     String // first 8 chars of raw token, shown for identification
+  scopeApps  String? // JSON array of app names; null = any app
+  isActive   Boolean   @default(true)
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  expiresAt  DateTime?
+  createdBy  String? // free-form, e.g. email or username
+
+  @@index([isActive])
+  @@index([lastUsedAt])
+}
+
+// User-supplied annotations on individual prompts. Lets the team mark
+// items as investigated, optimized, or won't-fix, with notes.
+model PromptAnnotation {
+  id          String   @id @default(cuid())
+  promptLogId String
+  status      String // 'open' | 'investigating' | 'optimized' | 'wont-fix'
+  note        String? // free-form
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String? // free-form
+
+  @@index([promptLogId])
+  @@index([status])
+}
+
+// Rules that re-allocate shared / multi-team LLM costs to specific
+// teams or apps. Example: 30% of `shared-llm-pool` cost goes to
+// marketing, 50% to engineering, 20% to support.
+//
+// `sourceMatcher` JSON: { appName?: string | string[], model?: string }
+// `targetSplit` JSON: { [appName: string]: number }  // percents, must sum ~= 100
+model AllocationRule {
+  id            String   @id @default(cuid())
+  name          String
+  sourceMatcher String // JSON
+  targetSplit   String // JSON
+  isActive      Boolean  @default(true)
+  priority      Int      @default(100)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([isActive, priority])
+}
+
 // Persistent record of detected anomalies so the system doesn't re-alert
 // for the same condition, and operators have a history they can review.
 //
