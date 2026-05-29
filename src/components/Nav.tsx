@@ -5,76 +5,20 @@ import { usePathname } from 'next/navigation';
 import { AnomalyBadge } from './AnomalyBadge';
 import { CommandPaletteHint } from './CommandPaletteHint';
 import { SignOutButton } from './SignOutButton';
+import { headerGroups as navGroups, allNavItems as items } from '@/lib/navigation';
 
-// Nav items organized into mission groups so the original program goal —
-// Track → Classify → Optimize — is the first thing the eye lands on. The
-// groups also map directly to the 5 layers of cost reduction documented in
-// the program: Visibility (Track), Classification (Classify), Recommendations
-// + prompt-level work (Optimize), Policy (Control), Plumbing (Connect),
-// Operations (Admin). Meta pages (changelog/roadmap/feedback) live in the
-// global footer instead — they're about the tool, not about reducing cost.
+// Navigation structure lives in src/lib/navigation.ts so this client
+// component and the server-side layout footer share one source of truth.
 //
-// Subtle vertical dividers render between groups on desktop so the structure
-// is visible without needing text labels (which would clutter the bar).
-const navGroups: Array<{ label: string; items: Array<{ href: string; label: string }> }> = [
-  {
-    label: 'Track',
-    items: [
-      { href: '/', label: 'Dashboard' },
-      { href: '/prompts', label: 'Prompts' },
-    ],
-  },
-  {
-    label: 'Classify',
-    items: [
-      { href: '/insights', label: 'Insights' },
-      { href: '/quality', label: 'Quality' },
-    ],
-  },
-  {
-    label: 'Optimize',
-    items: [
-      { href: '/optimizer', label: 'Optimizer' },
-      { href: '/studio', label: 'Studio' },
-      { href: '/templates', label: 'Templates' },
-      { href: '/compare', label: 'Compare' },
-    ],
-  },
-  {
-    label: 'Control',
-    items: [
-      { href: '/budget', label: 'Budget' },
-      { href: '/anomaly', label: 'Alerts' },
-      { href: '/allocations', label: 'Allocations' },
-      { href: '/snapshots', label: 'Snapshots' },
-      { href: '/digest', label: 'Digest' },
-    ],
-  },
-  {
-    label: 'Connect',
-    items: [
-      { href: '/import', label: 'Connectors' },
-      { href: '/api-keys', label: 'API Keys' },
-      { href: '/slack', label: 'Slack' },
-      // "Developer API" lives in the Connect group (not Admin) because it's
-      // integration plumbing — engineers wiring apps into AI FinOps. The
-      // "Developer" prefix on the label makes the audience explicit so a
-      // regular dashboard user knows the page isn't for them.
-      { href: '/api-docs', label: 'Developer API' },
-    ],
-  },
-  {
-    label: 'Admin',
-    items: [
-      { href: '/settings', label: 'Settings' },
-      { href: '/audit', label: 'Audit' },
-    ],
-  },
-];
-
-// Flattened list for the mobile drawer — group dividers don't add value in
-// a vertical 2-column grid where every item is the same size anyway.
-const items = navGroups.flatMap((g) => g.items);
+// Top nav renders `navGroups` (8 daily-use items in 4 mission groups:
+// Track → Classify → Optimize → Control) with subtle vertical dividers
+// between groups. Setup / admin / occasional pages live in the footer
+// secondary row instead — they're navigable but don't clutter the bar
+// every user sees on every page.
+//
+// Mobile drawer renders the full flat `items` list (header + footer
+// extras) since splitting into "primary / secondary" doesn't help on a
+// small screen — one scrollable list is friendlier there.
 
 export function Nav() {
   const path = usePathname();
