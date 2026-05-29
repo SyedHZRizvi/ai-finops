@@ -9,7 +9,6 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import { StreamingPulse } from '@/components/StreamingPulse';
 import { CommandPalette } from '@/components/CommandPalette';
 import { ThemeProvider } from '@/components/ThemeProvider';
-import { ThemeIndicator } from '@/components/ThemeIndicator';
 import { THEME_BOOT_SCRIPT } from '@/lib/themeBootScript';
 import { FeedbackButton } from '@/components/FeedbackButton';
 import { SITE_NAME, SITE_DESCRIPTION } from '@/lib/metadata';
@@ -108,8 +107,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </Link>
               <span className="text-borderBright" aria-hidden>·</span>
               <HealthIndicator />
-              <span className="text-borderBright" aria-hidden>·</span>
-              <ThemeIndicator />
               <span className="text-borderBright" aria-hidden>·</span>
               <StreamingPulse showLabel />
             </footer>
