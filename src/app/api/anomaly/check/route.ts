@@ -122,6 +122,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const justPersisted = filterToRecent(persistedRows, survivors.length);
     const persistedCount = justPersisted.length;
 
+    // SSE: notify connected clients about each new anomaly. Fire-and-forget.
+    for (const row of justPersisted) {
+      const { notifyAnomalyDetected } = await import('@/lib/sseHook');
+      notifyAnomalyDetected(row.id, {
+        kind: row.kind,
+        severity: row.severity,
+        title: row.title,
+        detectedAt: row.detectedAt.toISOString(),
+      });
+    }
+
     // Dispatch. Webhook URLs live on active Budget rows — one batched alert
     // per unique URL. Empty URLs are skipped.
     const budgets = await prisma.budget.findMany({

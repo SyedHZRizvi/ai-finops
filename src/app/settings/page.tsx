@@ -1,5 +1,6 @@
 import { PricingTable } from '@/components/PricingTable';
 import { DemoModeToggle } from '@/components/DemoModeToggle';
+import { TourButton } from '@/components/TourButton';
 import type { ModelPricing } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -44,6 +45,16 @@ export default async function SettingsPage() {
 
       <div className="pt-2">
         <DemoModeToggle />
+      </div>
+
+      <div className="card card-pad flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <div className="label">Onboarding tour</div>
+          <div className="text-sm text-inkDim mt-1">
+            10-step guided walkthrough of every part of the dashboard. Useful for new teammates.
+          </div>
+        </div>
+        <TourButton />
       </div>
     </div>
   );

@@ -10,6 +10,7 @@ const items = [
   { href: '/prompts', label: 'Prompts' },
   { href: '/optimizer', label: 'Optimizer' },
   { href: '/studio', label: 'Studio' },
+  { href: '/compare', label: 'Compare' },
   { href: '/anomaly', label: 'Alerts' },
   { href: '/budget', label: 'Budget' },
   { href: '/digest', label: 'Digest' },

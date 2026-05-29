@@ -5,6 +5,7 @@ import { countTokens, estimateOutputTokens } from '@/lib/tokenizer';
 import { analyzePrompt } from '@/lib/categorizer';
 import { optimizePrompt } from '@/lib/optimizer';
 import { calculateCost, ensurePricingLoaded } from '@/lib/pricing';
+import { notifyPromptLogged } from '@/lib/sseHook';
 import { timingSafeEqual } from 'node:crypto';
 
 export const dynamic = 'force-dynamic';
@@ -140,6 +141,19 @@ export async function POST(req: NextRequest) {
         category: true,
         complexity: true,
       },
+    });
+
+    // Fire-and-forget SSE notification so /api/stream subscribers see this
+    // prompt land in real time on the LiveTicker. Failures here never block
+    // the ingest path.
+    notifyPromptLogged(created.id, {
+      model: body.model,
+      appName: body.appName ?? null,
+      category: created.category,
+      complexity: created.complexity,
+      totalCost,
+      promptPreview: body.promptText.slice(0, 140),
+      timestamp: new Date().toISOString(),
     });
 
     return NextResponse.json(created, { status: 201 });

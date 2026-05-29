@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <title>AI FinOps</title>
+  <defs>
+    <linearGradient id="brand" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#22d3ee"/>
+    </linearGradient>
+    <linearGradient id="gradText" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#67e8f9"/>
+    </linearGradient>
+    <radialGradient id="glowPurple" cx="0%" cy="0%" r="60%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowCyan" cx="100%" cy="100%" r="60%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowPink" cx="50%" cy="100%" r="50%">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ec4899" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Base background -->
+  <rect width="1200" height="630" fill="#070810"/>
+
+  <!-- Mesh background glows (matches globals.css body bg) -->
+  <rect width="1200" height="630" fill="url(#glowPurple)"/>
+  <rect width="1200" height="630" fill="url(#glowCyan)"/>
+  <rect width="1200" height="630" fill="url(#glowPink)"/>
+
+  <!-- Subtle border vignette -->
+  <rect x="40" y="40" width="1120" height="550" rx="24" ry="24"
+        fill="none" stroke="#363b50" stroke-opacity="0.5" stroke-width="1"/>
+
+  <!-- Brand glyph: gradient square with lightning bolt -->
+  <g transform="translate(96 96)">
+    <rect width="88" height="88" rx="22" ry="22" fill="url(#brand)"/>
+    <path d="M48 12 L20 50 H42 L36 80 L66 38 H44 L48 12 Z"
+          fill="#ffffff" stroke="#ffffff" stroke-width="2"
+          stroke-linejoin="round" stroke-linecap="round" opacity="0.96"/>
+  </g>
+
+  <!-- Wordmark beside glyph -->
+  <text x="204" y="160"
+        font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="42" font-weight="700" letter-spacing="-1"
+        fill="#f3f4f8">AI FinOps</text>
+
+  <!-- Headline -->
+  <text x="96" y="320"
+        font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="84" font-weight="800" letter-spacing="-2.5"
+        fill="url(#gradText)">Track. Categorize.</text>
+  <text x="96" y="410"
+        font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="84" font-weight="800" letter-spacing="-2.5"
+        fill="url(#gradText)">Optimize.</text>
+
+  <!-- Subhead -->
+  <text x="96" y="480"
+        font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="28" font-weight="400" letter-spacing="-0.4"
+        fill="#c9cbd6">Cut your AI bill 30-60% with token-level FinOps.</text>
+
+  <!-- Bottom chip strip -->
+  <g transform="translate(96 544)">
+    <rect width="170" height="36" rx="18" ry="18"
+          fill="#181a26" stroke="#363b50" stroke-width="1"/>
+    <circle cx="22" cy="18" r="4" fill="#a78bfa"/>
+    <text x="36" y="23"
+          font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+          font-size="14" font-weight="600" fill="#c9cbd6">Token tracking</text>
+
+    <rect x="184" width="170" height="36" rx="18" ry="18"
+          fill="#181a26" stroke="#363b50" stroke-width="1"/>
+    <circle cx="206" cy="18" r="4" fill="#22c55e"/>
+    <text x="220" y="23"
+          font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+          font-size="14" font-weight="600" fill="#c9cbd6">Prompt insights</text>
+
+    <rect x="368" width="170" height="36" rx="18" ry="18"
+          fill="#181a26" stroke="#363b50" stroke-width="1"/>
+    <circle cx="390" cy="18" r="4" fill="#22d3ee"/>
+    <text x="404" y="23"
+          font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+          font-size="14" font-weight="600" fill="#c9cbd6">Cost optimizer</text>
+  </g>
+</svg>

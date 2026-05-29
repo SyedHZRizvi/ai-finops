@@ -13,6 +13,7 @@ import { BudgetBanner } from '@/components/BudgetBanner';
 import { AutoRefresh } from '@/components/AutoRefresh';
 import { ExportButton } from '@/components/ExportButton';
 import { DigestCard } from '@/components/DigestCard';
+import { LiveTicker } from '@/components/LiveTicker';
 
 export const dynamic = 'force-dynamic';
 
@@ -270,6 +271,9 @@ export default async function DashboardPage({
             <CategoryChart data={stats.byCategory} />
             <ModelBreakdown data={stats.byModel} />
           </div>
+
+          {/* Live activity strip — streams new prompts and anomalies in real time. */}
+          <LiveTicker />
 
           {/* Compact week-over-week digest preview at the bottom of the dashboard. */}
           <DigestCard />
