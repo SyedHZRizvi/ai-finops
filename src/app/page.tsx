@@ -172,14 +172,9 @@ function WelcomeEmpty() {
       title="Welcome to AI FinOps"
       subtitle="Connect a provider or wire the SDK into your apps to start tracking AI cost. We'll show you exactly where the spend is going and how to reduce it."
       actions={
-        <>
-          <Link href="/setup" className="btn-primary">
-            Run setup wizard <span aria-hidden>→</span>
-          </Link>
-          <Link href="/studio" className="btn">
-            View Studio
-          </Link>
-        </>
+        <Link href="/setup" className="btn-primary">
+          Run setup wizard <span aria-hidden>→</span>
+        </Link>
       }
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">

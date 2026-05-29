@@ -86,13 +86,51 @@ export function HealthIndicator() {
       {open && data && (
         <span
           role="tooltip"
-          className="absolute bottom-full right-0 mb-2 z-30 min-w-[260px] max-w-[360px] p-3 rounded-xl border border-border bg-panel2 shadow-card text-left"
+          className="absolute bottom-full right-0 mb-2 z-30 min-w-[260px] max-w-[320px] p-3 rounded-xl border border-border bg-panel2 shadow-card text-left normal-case"
         >
-          <pre className="text-[10px] leading-snug text-inkDim whitespace-pre-wrap break-all font-mono">
-            {JSON.stringify(data, null, 2)}
-          </pre>
+          <span className="flex items-center justify-between gap-3 pb-2 mb-2 border-b border-border">
+            <span className="text-[11px] uppercase tracking-wider text-muted font-semibold">
+              System status
+            </span>
+            <span className={`inline-flex items-center gap-1.5 text-xs font-medium ${meta.text}`}>
+              <span className={`inline-block w-1.5 h-1.5 rounded-full ${meta.dot}`} aria-hidden />
+              {meta.label}
+            </span>
+          </span>
+          <span className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
+            <span className="text-muted">Database</span>
+            <span className="text-inkDim text-right">
+              {data.database.reachable
+                ? `Reachable · ${data.database.latencyMs}ms`
+                : 'Unreachable'}
+            </span>
+            <span className="text-muted">Last log</span>
+            <span className="text-inkDim text-right">{formatAge(data.lastLog.ageSeconds)}</span>
+            <span className="text-muted">Last import</span>
+            <span className="text-inkDim text-right">
+              {data.lastImport.timestamp
+                ? `${data.lastImport.provider ?? '—'} · ${formatAge(data.lastImport.ageSeconds)}`
+                : 'Never'}
+            </span>
+            <span className="text-muted">Version</span>
+            <span className="text-inkDim text-right font-mono">{data.version}</span>
+            <span className="text-muted">Environment</span>
+            <span className="text-inkDim text-right">{data.env}</span>
+          </span>
         </span>
       )}
     </span>
   );
+}
+
+/**
+ * Format a "seconds ago" age into something a person reads at a glance.
+ * `null` → "Never" (no row yet); otherwise rounds to the largest sensible unit.
+ */
+function formatAge(seconds: number | null): string {
+  if (seconds === null) return 'Never';
+  if (seconds < 60) return `${seconds}s ago`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
 }

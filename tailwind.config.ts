@@ -4,8 +4,17 @@ import type { Config } from 'tailwindcss';
 // The same utility class (text-muted, bg-panel, etc.) automatically picks the
 // dark or light value based on `<html data-theme="...">`.
 //
+// IMPORTANT: each color is stored in CSS as an RGB triplet (e.g. "139 92 246",
+// no rgb() wrapper) so Tailwind's opacity-modifier syntax — `bg-brand/40`,
+// `border-good/30`, etc. — keeps working. The wrapper here resolves to
+// `rgb(139 92 246 / 0.4)` etc. at build time.
+//
 // The brand gradient keeps its literal hex values because the purple-to-cyan
 // gradient is a brand fixture that reads well on both light and dark surfaces.
+
+function v(name: string): string {
+  return `rgb(var(--color-${name}) / <alpha-value>)`;
+}
 
 const config: Config = {
   content: ['./src/**/*.{ts,tsx}'],
@@ -13,35 +22,35 @@ const config: Config = {
     extend: {
       colors: {
         // Base — flips between dark navy and warm off-white via CSS vars.
-        bg: 'var(--color-bg)',
-        panel: 'var(--color-panel)',
-        panel2: 'var(--color-panel2)',
-        panel3: 'var(--color-panel3)',
-        border: 'var(--color-border)',
-        borderBright: 'var(--color-border-bright)',
-        ink: 'var(--color-ink)',
-        inkDim: 'var(--color-ink-dim)',
-        muted: 'var(--color-muted)',
+        bg: v('bg'),
+        panel: v('panel'),
+        panel2: v('panel2'),
+        panel3: v('panel3'),
+        border: v('border'),
+        borderBright: v('border-bright'),
+        ink: v('ink'),
+        inkDim: v('ink-dim'),
+        muted: v('muted'),
         // Brand — vivid purple-to-cyan; desaturated for light mode.
-        brand: 'var(--color-brand)',
-        brandLight: 'var(--color-brand-light)',
-        brand2: 'var(--color-brand2)',
-        brand2Light: 'var(--color-brand2-light)',
+        brand: v('brand'),
+        brandLight: v('brand-light'),
+        brand2: v('brand2'),
+        brand2Light: v('brand2-light'),
         // Status — tuned darker in light mode for AA contrast.
-        good: 'var(--color-good)',
-        goodGlow: 'var(--color-good-glow)',
-        warn: 'var(--color-warn)',
-        warnGlow: 'var(--color-warn-glow)',
-        bad: 'var(--color-bad)',
-        badGlow: 'var(--color-bad-glow)',
+        good: v('good'),
+        goodGlow: v('good-glow'),
+        warn: v('warn'),
+        warnGlow: v('warn-glow'),
+        bad: v('bad'),
+        badGlow: v('bad-glow'),
         // Accent — for category color coding.
-        pink: 'var(--color-pink)',
-        blue: 'var(--color-blue)',
-        lime: 'var(--color-lime)',
-        amber: 'var(--color-amber)',
-        rose: 'var(--color-rose)',
-        teal: 'var(--color-teal)',
-        indigo: 'var(--color-indigo)',
+        pink: v('pink'),
+        blue: v('blue'),
+        lime: v('lime'),
+        amber: v('amber'),
+        rose: v('rose'),
+        teal: v('teal'),
+        indigo: v('indigo'),
       },
       backgroundImage: {
         'brand-gradient': 'linear-gradient(135deg, #8b5cf6 0%, #22d3ee 100%)',

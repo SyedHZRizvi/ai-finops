@@ -20,41 +20,42 @@
 
 :root,
 :root[data-theme='dark'] {
-  /* Surfaces */
-  --color-bg:            #070810;
-  --color-panel:         #0f1018;
-  --color-panel2:        #181a26;
-  --color-panel3:        #1f2230;
-  --color-border:        #262a3a;
-  --color-border-bright: #363b50;
+  /* Surfaces — stored as RGB triplets (no rgb() wrapper) so Tailwind opacity
+   * modifiers (bg-panel/40 etc.) compose with the alpha at build time. */
+  --color-bg:            7 8 16;
+  --color-panel:         15 16 24;
+  --color-panel2:        24 26 38;
+  --color-panel3:        31 34 48;
+  --color-border:        38 42 58;
+  --color-border-bright: 54 59 80;
 
   /* Ink */
-  --color-ink:           #f3f4f8;
-  --color-ink-dim:       #c9cbd6;
-  --color-muted:         #7b829a;
+  --color-ink:           243 244 248;
+  --color-ink-dim:       201 203 214;
+  --color-muted:         123 130 154;
 
   /* Brand */
-  --color-brand:         #8b5cf6;
-  --color-brand-light:   #a78bfa;
-  --color-brand2:        #22d3ee;
-  --color-brand2-light:  #67e8f9;
+  --color-brand:         139 92 246;
+  --color-brand-light:   167 139 250;
+  --color-brand2:        34 211 238;
+  --color-brand2-light:  103 232 249;
 
   /* Status */
-  --color-good:          #22c55e;
-  --color-good-glow:     #15803d;
-  --color-warn:          #f59e0b;
-  --color-warn-glow:     #b45309;
-  --color-bad:           #ef4444;
-  --color-bad-glow:      #991b1b;
+  --color-good:          34 197 94;
+  --color-good-glow:     21 128 61;
+  --color-warn:          245 158 11;
+  --color-warn-glow:     180 83 9;
+  --color-bad:           239 68 68;
+  --color-bad-glow:      153 27 27;
 
   /* Accents */
-  --color-pink:          #ec4899;
-  --color-blue:          #3b82f6;
-  --color-lime:          #84cc16;
-  --color-amber:         #f59e0b;
-  --color-rose:          #f43f5e;
-  --color-teal:          #14b8a6;
-  --color-indigo:        #6366f1;
+  --color-pink:          236 72 153;
+  --color-blue:          59 130 246;
+  --color-lime:          132 204 22;
+  --color-amber:         245 158 11;
+  --color-rose:          244 63 94;
+  --color-teal:          20 184 166;
+  --color-indigo:        99 102 241;
 
   /* Effects */
   --bg-mesh-1: radial-gradient(at 0% 0%, rgba(139,92,246,0.08) 0px, transparent 40%);
@@ -74,45 +75,45 @@
   --scrollbar-thumb-hover: #363b50;
 
   /* Focus ring — used by `.focus-ring` utility for keyboard a11y. */
-  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-brand-light);
+  --focus-ring: 0 0 0 2px rgb(var(--color-bg)), 0 0 0 4px rgb(var(--color-brand-light));
 }
 
 :root[data-theme='light'] {
   /* Surfaces — warm off-white / cream layered up to subtle gray panels. */
-  --color-bg:            #f7f7fb;
-  --color-panel:         #ffffff;
-  --color-panel2:        #f1f2f7;
-  --color-panel3:        #e7e9f1;
-  --color-border:        #e2e4ee;
-  --color-border-bright: #cfd2e0;
+  --color-bg:            247 247 251;
+  --color-panel:         255 255 255;
+  --color-panel2:        241 242 247;
+  --color-panel3:        231 233 241;
+  --color-border:        226 228 238;
+  --color-border-bright: 207 210 224;
 
   /* Ink — charcoal that hits WCAG AA on white. */
-  --color-ink:           #15172a;
-  --color-ink-dim:       #3a3f5a;
-  --color-muted:         #6b7186;
+  --color-ink:           21 23 42;
+  --color-ink-dim:       58 63 90;
+  --color-muted:         107 113 134;
 
   /* Brand — desaturated a notch so it doesn't vibrate against white. */
-  --color-brand:         #7c4ff0;
-  --color-brand-light:   #6739dc;
-  --color-brand2:        #0891b2;
-  --color-brand2-light:  #0e7490;
+  --color-brand:         124 79 240;
+  --color-brand-light:   103 57 220;
+  --color-brand2:        8 145 178;
+  --color-brand2-light:  14 116 144;
 
   /* Status — darker, higher-contrast variants for light mode. */
-  --color-good:          #15803d;
-  --color-good-glow:     #166534;
-  --color-warn:          #b45309;
-  --color-warn-glow:     #92400e;
-  --color-bad:           #b91c1c;
-  --color-bad-glow:      #991b1b;
+  --color-good:          21 128 61;
+  --color-good-glow:     22 101 52;
+  --color-warn:          180 83 9;
+  --color-warn-glow:     146 64 14;
+  --color-bad:           185 28 28;
+  --color-bad-glow:      153 27 27;
 
   /* Accents */
-  --color-pink:          #be185d;
-  --color-blue:          #1d4ed8;
-  --color-lime:          #4d7c0f;
-  --color-amber:         #b45309;
-  --color-rose:          #be123c;
-  --color-teal:          #0f766e;
-  --color-indigo:        #4338ca;
+  --color-pink:          190 24 93;
+  --color-blue:          29 78 216;
+  --color-lime:          77 124 15;
+  --color-amber:         180 83 9;
+  --color-rose:          190 18 60;
+  --color-teal:          15 118 110;
+  --color-indigo:        67 56 202;
 
   /* Effects — much softer washes; light backgrounds can't absorb saturated radials. */
   --bg-mesh-1: radial-gradient(at 0% 0%, rgba(124,79,240,0.06) 0px, transparent 45%);
@@ -131,10 +132,10 @@
   --scrollbar-thumb: #cfd2e0;
   --scrollbar-thumb-hover: #b6bacb;
 
-  --focus-ring: 0 0 0 2px var(--color-bg), 0 0 0 4px var(--color-brand);
+  --focus-ring: 0 0 0 2px rgb(var(--color-bg)), 0 0 0 4px rgb(var(--color-brand));
 }
 
-html, body { background: var(--color-bg); color: var(--color-ink); }
+html, body { background: rgb(var(--color-bg)); color: rgb(var(--color-ink)); }
 body {
   font-feature-settings: 'cv11', 'ss01';
   background-image:
@@ -246,7 +247,7 @@ table.tbl tbody tr:hover td { @apply bg-panel2; }
 .hero::before {
   content: '';
   @apply absolute -top-20 -right-20 w-72 h-72 rounded-full opacity-30 blur-3xl pointer-events-none;
-  background: radial-gradient(circle, var(--color-brand) 0%, transparent 70%);
+  background: radial-gradient(circle, rgb(var(--color-brand)) 0%, transparent 70%);
 }
 
 /* Glowing primary indicators */
