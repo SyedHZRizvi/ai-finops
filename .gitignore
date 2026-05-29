@@ -10,6 +10,7 @@ build
 coverage
 prisma/*.db
 prisma/*.db-journal
+prisma/dev.db
 sdk/dist
 sdk/node_modules
 

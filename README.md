@@ -25,20 +25,27 @@ The thesis is simple: **you can't optimize what you can't measure, and most team
 ```bash
 cd /Users/syed/Projects/ai-finops
 
-# Install deps (this also runs `prisma generate`)
+# 1. Configure DATABASE_URL — see .env.example for 3 options.
+#    Easiest: Neon dev branch from https://neon.tech (free).
+cp .env.example .env
+# then edit .env and paste your Postgres URL into DATABASE_URL.
+# also set FINOPS_ENCRYPTION_KEY (run: openssl rand -hex 32)
+
+# 2. Install deps (this also runs `prisma generate`)
 npm install
 
-# Create the SQLite schema
+# 3. Apply the schema and seed demo data
 npm run db:push
-
-# Seed pricing rows + 40+ demo prompt logs so the dashboard isn't empty
 npx tsx prisma/seed.ts
 
-# Run the dashboard
+# 4. Run the dashboard
 npm run dev
 ```
 
 Then open <http://localhost:3000>.
+
+If you don't want to deal with Postgres locally, the live production
+instance at <https://ai-finops.vercel.app> is the easiest way to evaluate.
 
 Pages:
 - **/** — Dashboard: cost, tokens, savings opportunity, charts, recent prompts.
@@ -140,7 +147,7 @@ Strategies 1 & 2 actually rewrite the prompt; the rest are suggestions with befo
 ```
 
 - **Frontend / backend**: Next.js 14 (app router), React 18, Tailwind, Recharts.
-- **DB**: SQLite via Prisma. Swap `DATABASE_URL` to Postgres for production; no code changes.
+- **DB**: PostgreSQL via Prisma (with proper migrations under `prisma/migrations/`). For local dev: point `DATABASE_URL` at a Neon dev branch, a local Docker Postgres, or the production Neon instance. See `.env.example` for the three options. (Earlier versions used SQLite by default; that was migrated to Postgres for Vercel serverless compatibility.)
 - **Token counting**: `gpt-tokenizer` (cl100k_base) as a provider-agnostic approximator. SDK callers may pass exact `inputTokens` / `outputTokens` from the provider's `usage` field and the dashboard will prefer those.
 - **Cost**: pure-function table editable from `/settings`. Hot-reloads.
 - **No background workers**, no Redis, no queue. Single Node process.

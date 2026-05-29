@@ -144,8 +144,9 @@ function buildItem(event: FinOpsEvent, idx: number): TickerItem {
     case 'anomaly-detected': {
       if (isAnomalyDetectedPayload(event.data)) {
         const a = event.data;
+        // Anomaly engine emits info | warn | critical (per src/lib/anomaly.ts).
         const severityClass =
-          a.severity === 'critical' ? 'chip-bad' : a.severity === 'high' ? 'chip-warn' : 'chip-amber';
+          a.severity === 'critical' ? 'chip-bad' : a.severity === 'warn' ? 'chip-warn' : 'chip-blue';
         return {
           id: `${baseId}-${a.anomalyId}`,
           kind: event.kind,

@@ -9,7 +9,15 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import { StreamingPulse } from '@/components/StreamingPulse';
 import { SITE_NAME, SITE_DESCRIPTION } from '@/lib/metadata';
 
+// Resolve absolute URLs for OG images and canonical links.
+// Order: explicit env var → Vercel-injected URL → localhost fallback.
+const RESOLVED_BASE_URL =
+  (process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
+    'http://localhost:3000').replace(/\/$/, '');
+
 export const metadata: Metadata = {
+  metadataBase: new URL(RESOLVED_BASE_URL),
   title: { default: SITE_NAME, template: `%s · ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
   icons: { icon: '/favicon.svg' },

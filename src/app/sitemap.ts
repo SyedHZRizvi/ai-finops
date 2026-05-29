@@ -20,6 +20,7 @@ const ROUTES: SitemapEntry[] = [
   { path: '/prompts', priority: 0.8, changeFrequency: 'hourly' },
   { path: '/optimizer', priority: 0.8, changeFrequency: 'weekly' },
   { path: '/studio', priority: 0.8, changeFrequency: 'weekly' },
+  { path: '/compare', priority: 0.6, changeFrequency: 'weekly' },
   { path: '/budget', priority: 0.6, changeFrequency: 'weekly' },
   { path: '/digest', priority: 0.6, changeFrequency: 'daily' },
   { path: '/anomaly', priority: 0.6, changeFrequency: 'hourly' },
