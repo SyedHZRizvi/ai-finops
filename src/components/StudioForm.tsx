@@ -1,6 +1,8 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { PROVIDER_STYLES } from '@/lib/providerStyles';
+import { TEMPLATES } from '@/lib/templates';
 import type {
   AudienceLevel,
   OutcomeFormat,
@@ -89,6 +91,20 @@ export function StudioForm() {
   const [result, setResult] = useState<StudioResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Prefill from the Templates library when /studio?templateId=... is opened.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const templateId = searchParams.get('templateId');
+    if (!templateId) return;
+    const tpl = TEMPLATES.find((t) => t.id === templateId);
+    if (!tpl) return;
+    setProblem(tpl.prompt);
+    setDesiredOutcome(`${tpl.name} — ${tpl.useCase}`);
+    if (tpl.target === 'claude' || tpl.target === 'gpt' || tpl.target === 'gemini') {
+      setTargetProvider(tpl.target);
+    }
+  }, [searchParams]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

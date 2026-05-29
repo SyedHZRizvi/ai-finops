@@ -3,6 +3,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnomalyBadge } from './AnomalyBadge';
+import { CommandPaletteHint } from './CommandPaletteHint';
+import { SignOutButton } from './SignOutButton';
 
 const items = [
   { href: '/', label: 'Dashboard' },
@@ -10,6 +12,7 @@ const items = [
   { href: '/prompts', label: 'Prompts' },
   { href: '/optimizer', label: 'Optimizer' },
   { href: '/studio', label: 'Studio' },
+  { href: '/templates', label: 'Templates' },
   { href: '/compare', label: 'Compare' },
   { href: '/anomaly', label: 'Alerts' },
   { href: '/budget', label: 'Budget' },
@@ -69,11 +72,14 @@ export function Nav() {
               </Link>
             );
           })}
+          <CommandPaletteHint />
           <AnomalyBadge />
+          <SignOutButton />
         </nav>
 
         {/* Mobile / narrow trigger */}
         <div className="lg:hidden flex items-center gap-2">
+          <CommandPaletteHint compact />
           <AnomalyBadge />
           <button
             type="button"

@@ -7,6 +7,7 @@ import { HealthIndicator } from '@/components/HealthIndicator';
 import { Tour } from '@/components/Tour';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { StreamingPulse } from '@/components/StreamingPulse';
+import { CommandPalette } from '@/components/CommandPalette';
 import { SITE_NAME, SITE_DESCRIPTION } from '@/lib/metadata';
 
 // Resolve absolute URLs for OG images and canonical links.
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Nav />
           <DemoBanner />
           <Tour />
+          <CommandPalette />
           <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8">{children}</main>
           <ScrollToTop />
           <footer className="text-xs text-muted text-center py-6 border-t border-border/60 flex items-center justify-center gap-3 flex-wrap">

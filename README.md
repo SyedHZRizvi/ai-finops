@@ -176,9 +176,10 @@ ai-finops/
 │       ├── pricing.ts       # DEFAULT_PRICING + getPricing + calculateCost
 │       ├── types.ts         # Shared types (used by app AND sdk consumers)
 │       └── db.ts            # Prisma singleton
-└── sdk/                     # Standalone TypeScript SDK package
-    ├── src/                 # FinOpsClient, wrap(), provider helpers
-    └── examples/            # anthropic, openai, manual-log
+├── sdk/                     # Standalone TypeScript SDK package
+│   ├── src/                 # FinOpsClient, wrap(), provider helpers
+│   └── examples/            # anthropic, openai, manual-log
+└── mcp-server/              # MCP (Model Context Protocol) server — exposes FinOps tools to Claude Desktop, Cursor, Cline. See mcp-server/README.md.
 ```
 
 ---
