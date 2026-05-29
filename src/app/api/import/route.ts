@@ -10,7 +10,15 @@ export const dynamic = 'force-dynamic';
 // default 10s vercel-style timeout is too tight.
 export const maxDuration = 60;
 
-const ProviderSchema = z.enum(['anthropic', 'openai', 'csv', 'google', 'azure']);
+const ProviderSchema = z.enum([
+  'anthropic',
+  'openai',
+  'csv',
+  'google',
+  'azure',
+  'bedrock',
+  'vertex',
+]);
 
 const BodySchema = z
   .object({

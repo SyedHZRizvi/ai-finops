@@ -13,25 +13,28 @@ import type { Importer, SupportedProvider } from './types';
 import { anthropicImporter } from './anthropic';
 import { openaiImporter } from './openai';
 import { csvImporter } from './csv';
+import { bedrockImporter } from './bedrock';
+import { vertexImporter } from './vertex';
+import { azureImporter } from './azure';
+
+// `google` is the legacy slot for the Google Cloud / Vertex AI importer;
+// it now resolves to the same stub as the canonical `vertex` provider so
+// any credentials stored under the old name keep working. The card UI
+// surfaces only the new name.
+const googleAlias: Importer = {
+  provider: 'google',
+  label: vertexImporter.label,
+  run: vertexImporter.run,
+};
 
 const REGISTRY: Record<SupportedProvider, Importer> = {
   anthropic: anthropicImporter,
   openai: openaiImporter,
   csv: csvImporter,
-  google: {
-    provider: 'google',
-    label: 'Google Cloud Billing',
-    run: async () => {
-      throw new Error('Google importer not yet implemented');
-    },
-  },
-  azure: {
-    provider: 'azure',
-    label: 'Azure OpenAI',
-    run: async () => {
-      throw new Error('Azure importer not yet implemented');
-    },
-  },
+  bedrock: bedrockImporter,
+  vertex: vertexImporter,
+  azure: azureImporter,
+  google: googleAlias,
 };
 
 export function getImporter(provider: SupportedProvider): Importer {
@@ -51,7 +54,8 @@ export function listImporters(): ImporterListEntry[] {
     { provider: 'anthropic', label: 'Anthropic (admin API)', implemented: true },
     { provider: 'openai', label: 'OpenAI (org usage API)', implemented: true },
     { provider: 'csv', label: 'Generic CSV upload', implemented: true },
-    { provider: 'google', label: 'Google Cloud Billing', implemented: false },
-    { provider: 'azure', label: 'Azure OpenAI', implemented: false },
+    { provider: 'bedrock', label: 'Amazon Bedrock (Cost Explorer)', implemented: false },
+    { provider: 'vertex', label: 'Google Vertex AI (Cloud Billing)', implemented: false },
+    { provider: 'azure', label: 'Azure OpenAI (Cost Management)', implemented: false },
   ];
 }

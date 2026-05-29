@@ -2,7 +2,14 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-type ProviderId = 'anthropic' | 'openai' | 'google' | 'azure' | 'gateway';
+type ProviderId =
+  | 'anthropic'
+  | 'openai'
+  | 'google'
+  | 'azure'
+  | 'gateway'
+  | 'bedrock'
+  | 'vertex';
 
 export interface CredentialDTO {
   id: string;
@@ -44,7 +51,45 @@ const PROVIDER_ACCENT: Record<string, { dot: string; bg: string; border: string;
   google: { dot: '#3b82f6', bg: 'bg-blue/10', border: 'border-blue/30', text: 'text-blue' },
   azure: { dot: '#22d3ee', bg: 'bg-brand2/10', border: 'border-brand2/30', text: 'text-brand2' },
   gateway: { dot: '#8b5cf6', bg: 'bg-brand/10', border: 'border-brand/30', text: 'text-brandLight' },
+  bedrock: { dot: '#f59e0b', bg: 'bg-amber/10', border: 'border-amber/30', text: 'text-amber' },
+  vertex: { dot: '#3b82f6', bg: 'bg-blue/10', border: 'border-blue/30', text: 'text-blue' },
 };
+
+// Human-readable copy for each provider, used by the Add Connector form.
+// Implemented providers get the "Native importer" path; stubs get a
+// warning steering operators to the CSV upload route below.
+const PROVIDER_COPY: Record<
+  string,
+  { displayLabel: string; description: string; keyPlaceholder: string }
+> = {
+  anthropic: {
+    displayLabel: 'Anthropic',
+    description: 'Claude models via the Anthropic admin API.',
+    keyPlaceholder: 'sk-ant-admin-...',
+  },
+  openai: {
+    displayLabel: 'OpenAI',
+    description: 'GPT models via the OpenAI org-level usage API.',
+    keyPlaceholder: 'sk-...',
+  },
+  bedrock: {
+    displayLabel: 'Amazon Bedrock',
+    description: 'Claude, Llama, and other models hosted on AWS.',
+    keyPlaceholder: '{"accessKeyId":"...","secretAccessKey":"...","region":"us-east-1"}',
+  },
+  vertex: {
+    displayLabel: 'Google Vertex AI',
+    description: 'Gemini and PaLM models on Google Cloud.',
+    keyPlaceholder: 'Paste service-account JSON key',
+  },
+  azure: {
+    displayLabel: 'Azure OpenAI Service',
+    description: 'OpenAI models hosted in Azure.',
+    keyPlaceholder: '{"tenantId":"...","clientId":"...","clientSecret":"...","subscriptionId":"..."}',
+  },
+};
+
+const STUB_PROVIDERS = new Set(['bedrock', 'vertex', 'azure']);
 
 function getProviderAccent(provider: string) {
   return PROVIDER_ACCENT[provider] ?? { dot: '#7b829a', bg: 'bg-panel2', border: 'border-border', text: 'text-muted' };
@@ -424,13 +469,21 @@ function AddConnectorForm({
   importers: ImporterInfo[];
   onAdded: () => void;
 }) {
-  const implemented = importers.filter((i) => i.implemented && i.provider !== 'csv');
-  const [provider, setProvider] = useState<string>(implemented[0]?.provider ?? '');
+  // Stub providers (Bedrock/Vertex/Azure) are listed alongside fully
+  // implemented ones so the operator can register a credential ahead of
+  // the native importer landing. The submit flow is identical; the
+  // dashboard surfaces a "use CSV for now" warning once a stub credential
+  // is selected.
+  const selectable = importers.filter((i) => i.provider !== 'csv');
+  const [provider, setProvider] = useState<string>(selectable[0]?.provider ?? '');
   const [apiKey, setApiKey] = useState('');
   const [label, setLabel] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+
+  const selectedCopy = PROVIDER_COPY[provider];
+  const isStub = STUB_PROVIDERS.has(provider);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -470,7 +523,7 @@ function AddConnectorForm({
     }
   }
 
-  if (implemented.length === 0) {
+  if (selectable.length === 0) {
     return (
       <div className="card card-pad text-sm text-muted">
         No importers are available in this build.
@@ -487,12 +540,20 @@ function AddConnectorForm({
           value={provider}
           onChange={(e) => setProvider(e.target.value)}
         >
-          {implemented.map((i) => (
-            <option key={i.provider} value={i.provider}>
-              {i.label}
-            </option>
-          ))}
+          {selectable.map((i) => {
+            const copy = PROVIDER_COPY[i.provider];
+            const displayLabel = copy?.displayLabel ?? i.label;
+            return (
+              <option key={i.provider} value={i.provider}>
+                {displayLabel}
+                {!i.implemented ? ' — coming soon' : ''}
+              </option>
+            );
+          })}
         </select>
+        {selectedCopy && (
+          <div className="text-xs text-muted mt-2">{selectedCopy.description}</div>
+        )}
       </div>
       <div className="md:col-span-2">
         <label className="label block mb-2">API key</label>
@@ -500,7 +561,7 @@ function AddConnectorForm({
           type="password"
           autoComplete="off"
           className="input font-mono text-xs"
-          placeholder="Paste admin API key"
+          placeholder={selectedCopy?.keyPlaceholder ?? 'Paste admin API key'}
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
         />
@@ -523,6 +584,12 @@ function AddConnectorForm({
           </button>
         </div>
       </div>
+      {isStub && (
+        <div className="md:col-span-4 text-xs text-warn">
+          Native importer coming soon. Use CSV upload from this provider's billing export for
+          now — see <code className="font-mono">docs/INTEGRATIONS.md</code>.
+        </div>
+      )}
       {err && <div className="md:col-span-4 text-xs text-bad">{err}</div>}
       {ok && <div className="md:col-span-4 text-xs text-good">Connector added.</div>}
     </form>

@@ -8,6 +8,10 @@ import { CategoryChart } from '@/components/CategoryChart';
 import { ModelBreakdown } from '@/components/ModelBreakdown';
 import { PeriodSelect } from '@/components/PeriodSelect';
 import { EmptyState } from '@/components/EmptyState';
+import { ForecastCard } from '@/components/ForecastCard';
+import { BudgetBanner } from '@/components/BudgetBanner';
+import { AutoRefresh } from '@/components/AutoRefresh';
+import { ExportButton } from '@/components/ExportButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -241,8 +245,16 @@ export default async function DashboardPage({
         <WelcomeEmpty />
       ) : (
         <>
+          {/* Budget alert banner — renders only when any budget is in warn/breach state. */}
+          <BudgetBanner />
+
           <StatsCards totals={stats.totals} />
-          <SavingsHighlight potentialSavings={stats.potentialSavings} period={period} />
+
+          {/* End-of-month forecast next to potential savings. */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <SavingsHighlight potentialSavings={stats.potentialSavings} period={period} />
+            <ForecastCard />
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             <div className="lg:col-span-2">
@@ -267,9 +279,12 @@ export default async function DashboardPage({
               <div className="label">Recent prompts</div>
               <div className="text-xs text-muted mt-1">Latest 10 logged calls</div>
             </div>
-            <Link href="/prompts" className="btn">
-              View all <span aria-hidden>→</span>
-            </Link>
+            <div className="flex items-center gap-2">
+              <ExportButton url="/api/export/prompts" label="Export" />
+              <Link href="/prompts" className="btn">
+                View all <span aria-hidden>→</span>
+              </Link>
+            </div>
           </div>
           {!recent || recent.items.length === 0 ? (
             <div className="p-10 text-center text-sm text-muted">
@@ -311,6 +326,8 @@ export default async function DashboardPage({
           )}
         </div>
       )}
+      {/* Soft-refresh the dashboard every 60s when the tab is visible. */}
+      {!apiUnreachable && <AutoRefresh intervalSeconds={60} />}
     </div>
   );
 }

@@ -8,6 +8,7 @@ const items = [
   { href: '/prompts', label: 'Prompts' },
   { href: '/optimizer', label: 'Optimizer' },
   { href: '/studio', label: 'Studio' },
+  { href: '/budget', label: 'Budget' },
   { href: '/settings', label: 'Settings' },
   { href: '/import', label: 'Connectors' },
 ];

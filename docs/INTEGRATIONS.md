@@ -246,3 +246,115 @@ For closed environments, the path is always: **use Studio to craft the prompt, p
 | Researcher using Perplexity, Gemini, Copilot interchangeably | Path 3 (Studio) for prompt crafting |
 | Data scientist with Python notebooks | Path 4 (direct HTTP) |
 | FinOps lead auditing AI spend across all of the above | All four paths feed the same dashboard. Roll out in order: SDK first (largest call volumes), extension second, Studio for governance. |
+
+---
+
+## Getting admin credentials for hosted-cloud providers
+
+The Anthropic and OpenAI importers each pull from a first-party admin API,
+so a single secret is enough. The three hosted-cloud providers below
+(Bedrock, Vertex AI, Azure OpenAI) do not expose per-call admin endpoints —
+their authoritative usage record lives in the cloud's billing system.
+Native importers for the billing APIs are on the roadmap; in the meantime,
+all three accept the **CSV upload** path on the dashboard.
+
+### AWS Bedrock
+
+**Where to look:** AWS Cost Explorer at
+<https://console.aws.amazon.com/billing/home#/costexplorer>.
+
+**CSV path (works today):**
+1. Open Cost Explorer.
+2. Set **Service** filter to `Amazon Bedrock`.
+3. Group by `Usage Type` to get input vs output token breakdowns.
+4. Set the granularity to `Daily` and pick the date range you want.
+5. Click **Download CSV**.
+6. On the dashboard, open the **CSV import** card on the connectors page
+   and paste the contents.
+
+**Programmatic path (future native importer):**
+Create an IAM user with an inline policy granting
+`ce:GetCostAndUsage` and `ce:GetCostAndUsageWithResources`. Generate an
+access key and store the credential blob on the dashboard as:
+
+```json
+{
+  "accessKeyId": "AKIA...",
+  "secretAccessKey": "...",
+  "region": "us-east-1"
+}
+```
+
+**What you cannot read:** per-prompt content. Bedrock invocations are not
+logged with their prompt or response text in Cost Explorer — only token
+counts and cost. Use the SDK wrapper (Path 1, `withGenericLogging`) if you
+need prompt-level analytics.
+
+### Google Vertex AI
+
+**Where to look:** Cloud Billing reports at
+<https://console.cloud.google.com/billing/reports>.
+
+**CSV path (works today):**
+1. In the Cloud Console, pick the billing account that pays for your
+   Vertex project.
+2. Open **Reports**.
+3. Filter **Services** to `Vertex AI` (and optionally `Generative
+   Language API` if you also use the Gemini API directly).
+4. Group by `SKU` so input vs output tokens become separate rows.
+5. Pick the date range and export to CSV.
+6. Paste into the **CSV import** card on the dashboard.
+
+**Programmatic path (future native importer):**
+Enable **BigQuery billing export** under Billing → Billing export. This
+materializes a per-day table you can query. Create a service account with
+`roles/bigquery.dataViewer` on the export dataset (and
+`roles/bigquery.jobUser` on the project), download its JSON key, and
+paste the entire JSON blob as the credential on the dashboard.
+
+```json
+{
+  "type": "service_account",
+  "project_id": "...",
+  "client_email": "...@<project>.iam.gserviceaccount.com",
+  "private_key": "-----BEGIN PRIVATE KEY-----\n..."
+}
+```
+
+**What you cannot read:** per-prompt content. The billing export carries
+SKU-level aggregates only. Wrap your Vertex calls with
+`withGeminiLogging` (Path 1) if you need prompt-level data.
+
+### Azure OpenAI Service
+
+**Where to look:** Azure Portal at <https://portal.azure.com>, then
+navigate to **Cost Management + Billing → Cost Management → Exports**.
+
+**CSV path (works today):**
+1. In the portal, open **Cost Management → Cost analysis**.
+2. Scope to the subscription that owns your Azure OpenAI deployments.
+3. Filter **Resource type** to
+   `Microsoft.CognitiveServices/accounts` and **Service tier** /
+   **Meter sub-category** to the OpenAI rows.
+4. Set the date range and granularity (Daily).
+5. Click **Download → CSV**.
+6. Paste into the **CSV import** card on the dashboard.
+
+**Programmatic path (future native importer):**
+Register an Azure AD application, create a client secret, and grant the
+app's service principal the `Cost Management Reader` role on the
+subscription. Paste the resulting credential blob on the dashboard:
+
+```json
+{
+  "tenantId": "...",
+  "clientId": "...",
+  "clientSecret": "...",
+  "subscriptionId": "..."
+}
+```
+
+**What you cannot read:** per-prompt content, and any deployment-level
+metadata you have not tagged on the Cognitive Services resource. Azure
+Cost Management groups by ResourceId, so naming your deployments
+consistently helps a lot when reconciling spend across teams.

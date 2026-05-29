@@ -4,7 +4,14 @@
 // exports), normalize it into rows the dashboard can persist as PromptLog,
 // and return them — they do NOT write to the database directly.
 
-export type SupportedProvider = 'anthropic' | 'openai' | 'google' | 'azure' | 'csv';
+export type SupportedProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'google'
+  | 'azure'
+  | 'bedrock'
+  | 'vertex'
+  | 'csv';
 
 export interface ImporterContext {
   /** Decrypted at the API layer and passed in. Empty string for CSV imports. */

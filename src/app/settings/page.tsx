@@ -1,4 +1,5 @@
 import { PricingTable } from '@/components/PricingTable';
+import { DemoModeToggle } from '@/components/DemoModeToggle';
 import type { ModelPricing } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -40,6 +41,10 @@ export default async function SettingsPage() {
       ) : (
         <PricingTable rows={rows} />
       )}
+
+      <div className="pt-2">
+        <DemoModeToggle />
+      </div>
     </div>
   );
 }

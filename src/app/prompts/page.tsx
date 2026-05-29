@@ -1,5 +1,6 @@
 import { PromptTable, type PromptRow } from '@/components/PromptTable';
 import { PromptDetail } from '@/components/PromptDetail';
+import { ExportButton } from '@/components/ExportButton';
 import type { ModelPricing } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
@@ -64,11 +65,14 @@ export default async function PromptsPage({
 
   return (
     <div className="space-y-6">
-      <div className="fade-up">
-        <h1 className="text-2xl font-bold tracking-tight">Prompts</h1>
-        <p className="text-sm text-muted mt-1">
-          Browse and filter every logged prompt. Click a row to inspect.
-        </p>
+      <div className="fade-up flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Prompts</h1>
+          <p className="text-sm text-muted mt-1">
+            Browse and filter every logged prompt. Click a row to inspect.
+          </p>
+        </div>
+        <ExportButton url={`/api/export/prompts?${qs.toString()}`} label="Export" />
       </div>
 
       {!data ? (

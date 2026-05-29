@@ -9,6 +9,7 @@ import { RedundancyClusters } from '@/components/RedundancyClusters';
 import { OutputBloatTable } from '@/components/OutputBloatTable';
 import { EmptyState } from '@/components/EmptyState';
 import { CATEGORY_CHIP } from '@/components/PromptTable';
+import { ExportButton } from '@/components/ExportButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -125,14 +126,18 @@ export default async function InsightsPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between fade-up">
+      <div className="flex items-center justify-between fade-up gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Insights</h1>
           <p className="text-sm text-muted mt-1">
             Why your AI bill is what it is — and the ranked actions that would lower it.
           </p>
         </div>
-        <PeriodSelect defaultValue="30d" />
+        <div className="flex items-center gap-2">
+          <ExportButton url={`/api/export/recommendations?period=${period}`} label="Export recs" />
+          <ExportButton url={`/api/export/insights?period=${period}`} label="Export all" />
+          <PeriodSelect defaultValue="30d" />
+        </div>
       </div>
 
       {!data ? (

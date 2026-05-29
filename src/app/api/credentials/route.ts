@@ -5,7 +5,15 @@ import { encrypt } from '@/lib/importers';
 
 export const dynamic = 'force-dynamic';
 
-const ProviderSchema = z.enum(['anthropic', 'openai', 'google', 'azure', 'gateway']);
+const ProviderSchema = z.enum([
+  'anthropic',
+  'openai',
+  'google',
+  'azure',
+  'gateway',
+  'bedrock',
+  'vertex',
+]);
 
 const UpsertSchema = z.object({
   provider: ProviderSchema,
