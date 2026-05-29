@@ -1,51 +1,42 @@
-// Google Vertex AI / Gemini API cost importer (stub).
+// Google Vertex AI cost importer — partial native support.
 //
-// Vertex AI usage is not exposed via a per-call admin endpoint. The standard
-// programmatic source of truth is Cloud Billing — either the REST API
-// (https://cloudbilling.googleapis.com/v1/) or, more commonly, the BigQuery
-// billing export that customers enable in the Cloud Console.
+// The honest story: there is no GCP API that returns per-day Vertex AI spend
+// the way Anthropic and OpenAI expose org-level usage. Cloud Billing's REST
+// API (cloudbilling.googleapis.com) only returns SKU *metadata*, not the
+// customer's consumption. Actual per-day Vertex usage lives in BigQuery once
+// the customer enables Cloud Billing → BigQuery export, which is a separate
+// piece of GCP setup that AI FinOps cannot do remotely.
 //
-// The BigQuery route is the right long-term target: enabling billing export
-// to BigQuery materializes a `gcp_billing_export_v1_<billing-account>` table
-// per day, with per-SKU rows that include `service.description = 'Vertex AI'`
-// and the model identifier in the SKU description.
+// What this importer DOES do, natively:
+//   1. Parses the service-account JSON.
+//   2. Signs a JWT and exchanges it for an OAuth 2.0 access token against
+//      Google's token endpoint. This validates that the key is real, the
+//      service account exists, and the private_key matches.
+//   3. Hits cloudbilling.googleapis.com's `services.list` to confirm the
+//      access token works against an actual Google API.
 //
-// Endpoint (future native impl, BigQuery route):
-//   POST https://bigquery.googleapis.com/bigquery/v2/projects/<project>/queries
-//   Auth: OAuth 2.0 access token derived from the service-account JSON.
-//   Body: parameterized SELECT against the billing export table.
+// What it does NOT do, by design:
+//   - Pull per-day cost rows. That requires either the BigQuery billing
+//     export (customer-set-up, separate from this credential) or scraping
+//     SKU pricing × usage from an undocumented combination of APIs.
 //
-// Until the BigQuery client (and a small JWT signer for the service-account
-// flow) lands, this importer is a stub: it parses and validates the
-// service-account JSON so an operator gets clear feedback on shape errors,
-// then returns an empty result with a warning pointing at the CSV upload
-// path documented in docs/INTEGRATIONS.md.
+// The importer emits an empty records array and a single actionable warning
+// pointing the operator at the CSV billing-export path documented in
+// docs/INTEGRATIONS.md. When the credential is wrong, the warning instead
+// describes the exact validation failure.
 //
-// Credential format (JSON in the apiKey field) — a Google service-account
-// key. The minimum fields we use:
+// Credential format (the standard service-account JSON Google emits):
 //   {
 //     "type": "service_account",
 //     "project_id": "...",
 //     "private_key_id": "...",
 //     "private_key": "-----BEGIN PRIVATE KEY-----\n...",
 //     "client_email": "...@<project>.iam.gserviceaccount.com",
-//     "client_id": "..."
+//     ...
 //   }
-//
-// When the native implementation lands, run() will:
-//   1. Parse the service-account JSON (already done below).
-//   2. Mint a JWT and exchange it for an OAuth 2.0 access token with the
-//      https://www.googleapis.com/auth/bigquery scope.
-//   3. POST a parameterized SELECT against
-//      `<project>.<dataset>.gcp_billing_export_v1_<billing-account>` that
-//      groups by `usage_start_time`, `sku.description`, and emits cost +
-//      usage rows. (The dataset name is configured at billing-export time;
-//      we'll need a separate UI input for it.)
-//   4. Translate each SKU description into a Vertex model id, splitting
-//      input vs output via the `Input` / `Output` suffix in the SKU name.
-//   5. Emit one ImportedRecord per day-bucket × model.
 
 import type { ImportedRecord, Importer, ImporterContext, ImportResult } from './types';
+import { getAccessToken } from './gcpJwt';
 
 interface VertexCredential {
   type: string;
@@ -53,6 +44,17 @@ interface VertexCredential {
   clientEmail: string;
   privateKey: string;
 }
+
+// Scope used to probe the access token. We pick `cloud-billing.readonly`
+// because it's the scope a *real* Vertex importer would need once a native
+// usage source exists. If the service account is missing the matching IAM
+// role, the token exchange itself still succeeds (scopes are caller-asserted)
+// but the probe call to cloudbilling.googleapis.com will fail with 403, which
+// is a useful signal to surface.
+const PROBE_SCOPES = ['https://www.googleapis.com/auth/cloud-billing.readonly'];
+const PROBE_URL = 'https://cloudbilling.googleapis.com/v1/services?pageSize=1';
+
+// --- credential parsing ---------------------------------------------------
 
 function parseCredential(raw: string): VertexCredential {
   let parsed: unknown;
@@ -89,27 +91,114 @@ function parseCredential(raw: string): VertexCredential {
   return { type, projectId, clientEmail, privateKey };
 }
 
+// --- credential probe -----------------------------------------------------
+
+interface ProbeOutcome {
+  ok: boolean;
+  message: string;
+}
+
+async function probeCredential(credential: VertexCredential): Promise<ProbeOutcome> {
+  // Step 1: exchange the JWT for an access token. Failures here mean the
+  // service account itself is broken (revoked key, malformed PEM, wrong
+  // client_email, etc.) — they're actionable for the operator.
+  let tokenResp: Awaited<ReturnType<typeof getAccessToken>>;
+  try {
+    tokenResp = await getAccessToken({
+      clientEmail: credential.clientEmail,
+      privateKey: credential.privateKey,
+      scopes: PROBE_SCOPES,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      message:
+        `Could not exchange the service-account JWT for an access token: ${msg}. ` +
+        `Verify the key has not been revoked in IAM → Service Accounts → Keys.`,
+    };
+  }
+
+  // Step 2: probe a real Google API with the token. We don't actually care
+  // about the response body — just that the token is accepted.
+  let probeResp: Response;
+  try {
+    probeResp = await fetch(PROBE_URL, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${tokenResp.accessToken}` },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      message: `Network error contacting Cloud Billing API to validate the access token: ${msg}.`,
+    };
+  }
+
+  if (probeResp.status === 401) {
+    return {
+      ok: false,
+      message:
+        'Google rejected the access token (HTTP 401). The token exchange succeeded but the ' +
+        'token was not accepted by Cloud Billing — this usually means the service account ' +
+        'has been disabled.',
+    };
+  }
+  if (probeResp.status === 403) {
+    return {
+      ok: false,
+      message:
+        'The service account is missing the `roles/billing.viewer` (or equivalent) IAM ' +
+        'role on the billing account. Grant it in Cloud Console → IAM & Admin → Billing.',
+    };
+  }
+  if (!probeResp.ok) {
+    const body = await probeResp.text().catch(() => '');
+    return {
+      ok: false,
+      message: `Cloud Billing probe returned HTTP ${probeResp.status}: ${body.slice(0, 200)}.`,
+    };
+  }
+
+  return {
+    ok: true,
+    message:
+      'Service-account credential validated against Google Cloud Billing API. ' +
+      'Native per-day Vertex usage requires Cloud Billing → BigQuery export to be configured ' +
+      'by your GCP admin. Once set up, export the billing data as CSV and use the manual ' +
+      'CSV import. See docs/INTEGRATIONS.md for setup steps.',
+  };
+}
+
+// --- entry point ----------------------------------------------------------
+
 async function run(ctx: ImporterContext): Promise<ImportResult> {
   if (!ctx.apiKey) {
     throw new Error(
       'Google Vertex AI importer requires a service-account JSON key in the apiKey field.',
     );
   }
-
-  // Validate the service-account shape up front. This gives the operator
-  // clear feedback now (wrong format vs. expired key vs. missing role) and
-  // means the future BigQuery / Cloud Billing client can drop the parse
-  // step in place.
   const credential = parseCredential(ctx.apiKey);
-  void credential; // unused until the BigQuery client lands.
 
   const rangeTo = ctx.rangeTo ?? new Date();
   const rangeFrom = ctx.rangeFrom ?? new Date(rangeTo.getTime() - 30 * 24 * 60 * 60 * 1000);
 
   const records: ImportedRecord[] = [];
-  const warnings: string[] = [
-    'Native Google Vertex AI importer not yet implemented. Use CSV import for now — see docs/INTEGRATIONS.md.',
-  ];
+  const warnings: string[] = [];
+
+  const outcome = await probeCredential(credential);
+  warnings.push(outcome.message);
+
+  // If the credential is wrong, surface a second, more prescriptive line so
+  // the operator can act without scrolling back to docs.
+  if (!outcome.ok) {
+    warnings.push(
+      'Vertex AI native cost import is not available until both (a) the service-account ' +
+        'credential is valid and (b) the GCP project has Cloud Billing → BigQuery export ' +
+        'enabled. Until then, export billing data as CSV and use the CSV importer. ' +
+        'See docs/INTEGRATIONS.md.',
+    );
+  }
 
   return {
     records,

@@ -6,7 +6,8 @@ import { analyzePrompt } from '@/lib/categorizer';
 import { optimizePrompt } from '@/lib/optimizer';
 import { calculateCost, ensurePricingLoaded } from '@/lib/pricing';
 import { notifyPromptLogged } from '@/lib/sseHook';
-import { timingSafeEqual } from 'node:crypto';
+import { verifyIngestToken } from '@/lib/ingestAuth';
+import { recordUsage } from '@/lib/apiKeys';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,40 +34,13 @@ const LogBodySchema = z.object({
   ).optional(),
 });
 
-function checkAuth(req: NextRequest): { ok: true } | { ok: false; status: number; error: string } {
-  const expected = process.env.FINOPS_INGEST_TOKEN;
-  if (!expected || expected.length === 0) {
-    // Audit C8: default-deny is the long-term fix, but for backwards-compat
-    // we still accept unauthenticated logs while loudly warning on startup
-    // (see warn-on-boot in instrumentation). In production a missing token
-    // is itself an event worth logging on every request.
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('[ai-finops] WARNING: /api/log accepting unauthenticated request — set FINOPS_INGEST_TOKEN to require Bearer auth');
-    }
-    return { ok: true };
-  }
-
-  const header = req.headers.get('authorization') ?? '';
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  if (!match) {
-    return { ok: false, status: 401, error: 'unauthorized' };
-  }
-  // Constant-time comparison avoids token-length timing leaks.
-  const supplied = Buffer.from(match[1], 'utf8');
-  const wanted = Buffer.from(expected, 'utf8');
-  if (supplied.length !== wanted.length) {
-    return { ok: false, status: 401, error: 'unauthorized' };
-  }
-  if (!timingSafeEqual(supplied, wanted)) {
-    return { ok: false, status: 401, error: 'unauthorized' };
-  }
-  return { ok: true };
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const auth = checkAuth(req);
-    if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+    // Auth: env var FINOPS_INGEST_TOKEN (legacy) OR any active ApiKey row.
+    const auth = await verifyIngestToken(req.headers.get('authorization'));
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.reason ?? 'unauthorized' }, { status: 401 });
+    }
 
     const json = await req.json().catch(() => null);
     if (json === null) {
@@ -142,6 +116,11 @@ export async function POST(req: NextRequest) {
         complexity: true,
       },
     });
+
+    // Bump lastUsedAt on the matching ApiKey (fire-and-forget).
+    if (auth.keyId) {
+      void recordUsage(auth.keyId);
+    }
 
     // Fire-and-forget SSE notification so /api/stream subscribers see this
     // prompt land in real time on the LiveTicker. Failures here never block

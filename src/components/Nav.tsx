@@ -17,8 +17,10 @@ const items = [
   { href: '/compare', label: 'Compare' },
   { href: '/anomaly', label: 'Alerts' },
   { href: '/budget', label: 'Budget' },
+  { href: '/allocations', label: 'Allocations' },
   { href: '/digest', label: 'Digest' },
   { href: '/settings', label: 'Settings' },
+  { href: '/api-keys', label: 'API Keys' },
   { href: '/import', label: 'Connectors' },
   { href: '/api-docs', label: 'API' },
 ];

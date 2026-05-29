@@ -26,7 +26,10 @@ export async function GET(req: NextRequest) {
     }
     const { limit, offset, category, complexity, model, search } = parsed.data;
 
-    const where: Prisma.PromptLogWhereInput = {};
+    const where: Prisma.PromptLogWhereInput = {
+      // Hide rows soft-deleted via the bulk-delete action (metadata contains {"deleted":true}).
+      NOT: { metadata: { contains: '"deleted":true' } },
+    };
     if (category) where.category = category;
     if (complexity) where.complexity = complexity;
     if (model) where.model = model;
