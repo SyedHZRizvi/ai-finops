@@ -118,6 +118,33 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
+// Persistent record of detected anomalies so the system doesn't re-alert
+// for the same condition, and operators have a history they can review.
+//
+// kind: 'cost-spike' | 'new-model' | 'expensive-prompt' | 'budget-breach' | 'latency-spike'
+// severity: 'info' | 'warn' | 'critical'
+model AnomalyEvent {
+  id          String    @id @default(cuid())
+  kind        String
+  severity    String
+  title       String
+  description String
+  detectedAt  DateTime  @default(now())
+  resolvedAt  DateTime?
+  // JSON. Includes whatever context the detection logic captured —
+  // affected app/model/promptLogId, comparison baseline, etc.
+  metadata    String?
+  // True once a webhook has been dispatched for this event.
+  webhookSent Boolean   @default(false)
+  // For deduplication: same kind + scopeKey within a 24h window is a
+  // duplicate. Used to suppress re-alerts.
+  scopeKey    String?
+
+  @@index([detectedAt])
+  @@index([severity])
+  @@index([kind, scopeKey])
+}
+
 // Spend control. One row per scope.
 //   scope = 'global'           → enterprise-wide monthly cap
 //   scope = 'app'              → cap for a specific appName
