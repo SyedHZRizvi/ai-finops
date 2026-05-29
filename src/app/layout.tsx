@@ -85,29 +85,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               ))}
             </nav>
             <footer className="text-xs text-muted text-center py-6 border-t border-border/60 flex items-center justify-center gap-3 flex-wrap">
+              {/* Track / Categorize / Optimize removed from this primary
+                  footer row because they duplicated Prompts / Insights /
+                  Optimizer in the header. "AI FinOps" stays as a brand
+                  link (stylistically distinct from the header logo, common
+                  pattern). The Changelog + Roadmap were removed earlier
+                  on the same "don't show users tool-meta" principle. */}
               <Link href="/" className="gradient-text font-semibold hover:opacity-80 transition-opacity">
                 AI FinOps
-              </Link>
-              <span className="text-borderBright" aria-hidden>·</span>
-              <Link
-                href="/prompts"
-                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
-              >
-                Track
-              </Link>
-              <span className="text-borderBright" aria-hidden>·</span>
-              <Link
-                href="/insights"
-                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
-              >
-                Categorize
-              </Link>
-              <span className="text-borderBright" aria-hidden>·</span>
-              <Link
-                href="/optimizer"
-                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
-              >
-                Optimize
               </Link>
               <span className="text-borderBright" aria-hidden>·</span>
               <Link
@@ -116,12 +101,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               >
                 What is this?
               </Link>
-              {/* Changelog + Roadmap removed from the footer — these are
-                  tool-meta pages that don't belong in a regular user's
-                  field of view. Pages still exist at /changelog and /roadmap
-                  for anyone who knows to ask for them directly.
-                  Feedback stays because submitting feedback IS an action a
-                  user might want to take. */}
               <span className="text-borderBright" aria-hidden>·</span>
               <Link
                 href="/feedback"
