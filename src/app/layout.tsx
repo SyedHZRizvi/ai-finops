@@ -7,7 +7,6 @@ import { HealthIndicator } from '@/components/HealthIndicator';
 import { Tour } from '@/components/Tour';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { StreamingPulse } from '@/components/StreamingPulse';
-import { AutoRefresh } from '@/components/AutoRefresh';
 import { CommandPalette } from '@/components/CommandPalette';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { THEME_BOOT_SCRIPT } from '@/lib/themeBootScript';
@@ -113,8 +112,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <HealthIndicator />
               <span className="text-borderBright" aria-hidden>·</span>
               <StreamingPulse showLabel />
-              <span className="text-borderBright" aria-hidden>·</span>
-              <AutoRefresh intervalSeconds={60} />
             </footer>
           </div>
         </ThemeProvider>
