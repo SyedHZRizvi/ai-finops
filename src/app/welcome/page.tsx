@@ -445,7 +445,7 @@ export default function WelcomePage() {
             </div>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
               <a
-                href="https://github.com/"
+                href="https://github.com/SyedHZRizvi/ai-finops"
                 target="_blank"
                 rel="noreferrer noopener"
                 className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
@@ -453,7 +453,7 @@ export default function WelcomePage() {
                 GitHub repo <span aria-hidden>↗</span>
               </a>
               <a
-                href="https://github.com/"
+                href="https://github.com/SyedHZRizvi/ai-finops/blob/main/docs/INTEGRATIONS.md"
                 target="_blank"
                 rel="noreferrer noopener"
                 className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
@@ -461,7 +461,7 @@ export default function WelcomePage() {
                 INTEGRATIONS.md <span aria-hidden>↗</span>
               </a>
               <a
-                href="https://github.com/"
+                href="https://github.com/SyedHZRizvi/ai-finops/blob/main/docs/SECURITY-AUDIT.md"
                 target="_blank"
                 rel="noreferrer noopener"
                 className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"

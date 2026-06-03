@@ -204,7 +204,7 @@ SLACK_SIGNING_SECRET=...`}
       </ol>
       <div className="pt-2">
         <Link
-          href="https://github.com/ai-finops/ai-finops/blob/main/docs/SLACK.md"
+          href="https://github.com/SyedHZRizvi/ai-finops/blob/main/docs/SLACK.md"
           target="_blank"
           rel="noopener noreferrer"
           className="text-brandLight text-sm underline underline-offset-4"

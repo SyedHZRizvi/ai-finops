@@ -56,7 +56,7 @@ export interface CommandItem {
 }
 
 const PROD_URL = 'https://ai-finops.vercel.app';
-const REPO_URL = 'https://github.com/ai-finops/ai-finops';
+const REPO_URL = 'https://github.com/SyedHZRizvi/ai-finops';
 
 /** Tiny helper for opening an external URL in a new tab. */
 function openExternal(href: string): void {
