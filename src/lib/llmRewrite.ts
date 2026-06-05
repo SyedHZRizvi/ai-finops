@@ -250,13 +250,19 @@ GOAL 2 — Reduce OUTPUT tokens (make the LLM respond concisely):
 - If the task has a known deliverable type (code, list, table, yes/no), name it: "Return only the code." / "Return a markdown table." / "Answer yes or no with one line of reasoning."
 - Replace open questions ("tell me about X") with scoped questions ("List the 3 most important aspects of X in one sentence each")
 
+GOAL 3 — Fix spelling, grammar, and typos:
+- Correct ALL spelling mistakes silently (e.g. "inforamton" → "information", "teh" → "the")
+- Fix grammatical errors and awkward phrasing
+- Standardize capitalization and punctuation
+- Do this automatically — do not call it out in the rationale unless it was the only change made
+
 HARD RULES:
 - Preserve every distinct request and constraint from the original — nothing may be dropped
 - Add NO new facts, requirements, or examples that weren't in the original
 - DO NOT answer the prompt. DO NOT execute the task. ONLY rewrite the prompt.
 
 Respond ONLY with a JSON object of this exact shape:
-{"rewrittenPrompt": "<the rewritten prompt>", "rationale": "<1-2 sentences: what you cut from input AND what constraint you added to limit output>"}
+{"rewrittenPrompt": "<the rewritten prompt>", "rationale": "<1-2 sentences: what you cut from input AND what constraint you added to limit output — mention spelling/grammar only if that was the primary change>"}
 
 No prose before or after the JSON. No markdown fences.`;
 
