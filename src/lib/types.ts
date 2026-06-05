@@ -42,7 +42,8 @@ export type OptimizationType =
   | 'few-shot-reduction'
   | 'system-prompt-extraction'
   | 'use-cheaper-model'
-  | 'cap-output';
+  | 'cap-output'
+  | 'batch-api';         // async batch processing at 50% discount (OpenAI/Anthropic)
 
 export interface OptimizationSuggestion {
   type: OptimizationType;
@@ -200,7 +201,7 @@ export interface Recommendation {
   estimatedAnnualSavings: number;
   affectedCalls: number;
   confidence: 'high' | 'medium' | 'low';
-  category: 'model-routing' | 'prompt-rewrite' | 'caching' | 'output-cap' | 'consolidation' | 'governance';
+  category: 'model-routing' | 'prompt-rewrite' | 'caching' | 'output-cap' | 'consolidation' | 'governance' | 'batch-api';
 }
 
 export interface TopSpender {

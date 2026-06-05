@@ -174,16 +174,27 @@ export function optimizePrompt(
   }
 
   // 5. few-shot-reduction
+  // Fix: count actual example BLOCKS, not just "e.g." occurrences. Real few-shot
+  // prompts use structured patterns: "Example N:", "Input:/Output:" pairs,
+  // "---" block separators, or repeated "Q:/A:" blocks. Counting "e.g." was
+  // giving false positives on prompts that merely referenced a model name
+  // (e.g. Claude, e.g. GPT-4) without any examples.
   if (analysis.characteristics.hasExamples) {
-    const exampleCount =
-      (original.toLowerCase().match(/for example|e\.g\./g) ?? []).length;
+    const text = original;
+    // Block-level example markers — each is one actual example
+    const blockMarkers = (text.match(
+      /\bexample\s*\d+\s*[:\-]|\binput\s*\d*\s*[:\-]\s*|\boutput\s*\d*\s*[:\-]\s*|^Q\s*[:]\s*|^A\s*[:]\s*/gim
+    ) ?? []).length;
+    // Inline "e.g." only counts if followed by at least 20 chars of content
+    const inlineEg = (text.match(/(?:for example|e\.g\.)\s*[:\-]?\s*.{20,}/gi) ?? []).length;
+    const exampleCount = Math.max(blockMarkers, inlineEg);
     if (exampleCount > 2) {
       const estimatedSavings = Math.round(originalTokens * 0.15);
       const { totalCost } = calculateCost(estimatedSavings, 0, model);
       suggestions.push({
         type: 'few-shot-reduction',
         title: 'Reduce the number of examples',
-        description: `Detected ${exampleCount} example markers. Modern frontier models generalize from 1–2 well-chosen examples; trim the rest.`,
+        description: `Detected ${exampleCount} example blocks. Modern frontier models (GPT-4, Claude 3+, Gemini 1.5+) generalize reliably from 1–2 well-chosen examples — cut the rest to reduce input tokens on every call.`,
         estimatedTokenSavings: estimatedSavings,
         estimatedCostSavings: totalCost,
         confidence: 0.7,
@@ -192,19 +203,26 @@ export function optimizePrompt(
   }
 
   // 6. system-prompt-extraction
-  if (analysis.characteristics.hasContextDump || originalTokens > 800) {
-    // assume ~60% of input is reusable role/context across requests; with caching only 10% of that is re-billed
-    const reusable = Math.round(originalTokens * 0.6);
+  // Fix: previously fired on ANY prompt >800 tokens, projecting 54% savings
+  // (0.6 reusable × 0.9 discount) even on one-off prompts that have nothing
+  // reusable. Now only fires when there are CLEAR indicators of stable context:
+  //   a) hasContextDump from categorizer (role, persona, or background block)
+  //   b) OR explicit role/instruction markers in the text
+  // Also reduced reusable estimate from 60% → 40% to be conservative.
+  const hasRoleMarkers = /\b(you are|act as|your role|your job is|as a|as an)\b/i.test(original);
+  if (analysis.characteristics.hasContextDump || hasRoleMarkers) {
+    const reusable = Math.round(originalTokens * 0.4);
     const estimatedSavings = Math.round(reusable * 0.9);
     const { totalCost } = calculateCost(estimatedSavings, 0, model);
     suggestions.push({
       type: 'system-prompt-extraction',
-      title: 'Hoist context into a cached system prompt',
+      title: 'Move stable instructions to a cached system prompt',
       description:
-        'Stable role and background instructions can be moved into a system prompt and cached. With prompt caching, repeat reads cost a fraction of the per-1M input rate.',
+        'This prompt contains role or context instructions that are likely identical across many calls. Moving them to a system prompt and enabling caching reduces input cost to ~10% on every repeat. ' +
+        'How: separate "You are X, your role is Y" into the system message; keep only the per-call variable content in the user message.',
       estimatedTokenSavings: estimatedSavings,
       estimatedCostSavings: totalCost,
-      confidence: 0.5,
+      confidence: 0.65,
     });
   }
 
@@ -219,10 +237,14 @@ export function optimizePrompt(
         (inputCount / 1_000_000) * cheaper.inputCostPer1M +
         (outputCount / 1_000_000) * cheaper.outputCostPer1M;
       const costSavings = Math.max(0, current - proposed);
+      const savingsPct = current > 0 ? Math.round((costSavings / current) * 100) : 0;
       suggestions.push({
         type: 'use-cheaper-model',
-        title: `Downgrade to ${cheaper.model}`,
-        description: `Complexity is ${analysis.complexity}; ${cheaper.model} handles this tier well at a fraction of the cost.`,
+        title: `Route to ${cheaper.model} — ${savingsPct}% cheaper per call`,
+        description:
+          `Complexity is ${analysis.complexity} — ${cheaper.model} handles this category reliably at a fraction of the cost. ` +
+          `How to implement: update the \`model\` parameter in your API call from "${model}" to "${cheaper.model}". ` +
+          `Validate quality on a representative sample of your real outputs before rolling out to 100%.`,
         estimatedTokenSavings: 0,
         estimatedCostSavings: costSavings,
         confidence: 0.6,
@@ -231,20 +253,36 @@ export function optimizePrompt(
   }
 
   // 8. cap-output
+  // Fix: previously hardcoded 300 words for ALL prompts over 1,500 output tokens.
+  // 300 words is ~390 tokens — fine for a quick factual answer but would truncate
+  // a code review, detailed analysis, or multi-part response mid-way. Now:
+  //   - Target = 50% of estimated/actual output, clamped 150–800 words
+  //   - This preserves enough room for the task while still meaningfully cutting bloat
+  //   - The appended instruction names the unit that works best for the prompt type
   if (
     effectiveOutputTokens > 1500 &&
     analysis.complexity !== 'multidimensional'
   ) {
-    const targetWords = 300;
-    const cappedTokens = Math.round(targetWords * 1.3);
+    // tokens × 0.75 ≈ words (conservative). Target 50% reduction, clamp to 150–800.
+    const currentWords = Math.round(effectiveOutputTokens * 0.75);
+    const targetWords = Math.max(150, Math.min(800, Math.round(currentWords * 0.5)));
+    const cappedTokens = Math.round(targetWords / 0.75);
     const estimatedSavings = Math.max(0, effectiveOutputTokens - cappedTokens);
     const { totalCost } = calculateCost(0, estimatedSavings, model);
     const sourceWord = actualOutputTokens !== undefined ? 'Actual' : 'Estimated';
+    // For code-category prompts, lines is more meaningful than words
+    const unit = analysis.category === 'code' ? 'lines of code' : 'words';
+    const constraint = analysis.category === 'code'
+      ? `Limit your response to ${targetWords} lines of code. Include no explanation unless asked.`
+      : `Respond in at most ${targetWords} words. Be direct — no preamble or summary.`;
     suggestions.push({
       type: 'cap-output',
-      title: 'Cap response length',
-      description: `${sourceWord} output is ~${effectiveOutputTokens} tokens. Appending "Respond in at most ${targetWords} words." caps output cost.`,
-      after: `…\n\nRespond in at most ${targetWords} words.`,
+      title: `Cap response length (~${targetWords} ${unit})`,
+      description:
+        `${sourceWord} output is ~${effectiveOutputTokens} tokens (~${currentWords} ${unit}). ` +
+        `Adding a length constraint halves output cost while keeping the response complete. ` +
+        `Adjust the cap upward if your task genuinely needs a longer answer.`,
+      after: `…\n\n${constraint}`,
       estimatedTokenSavings: estimatedSavings,
       estimatedCostSavings: totalCost,
       confidence: 0.8,

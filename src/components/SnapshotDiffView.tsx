@@ -123,6 +123,7 @@ const REC_CATEGORY_CHIP: Record<Recommendation['category'], string> = {
   'output-cap': 'chip-warn',
   consolidation: 'chip-indigo',
   governance: 'chip-pink',
+  'batch-api': 'chip-lime',
 };
 
 function RecRow({ rec, sigil }: { rec: Recommendation; sigil?: 'new' | 'resolved' }) {

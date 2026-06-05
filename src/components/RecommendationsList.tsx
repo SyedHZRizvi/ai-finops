@@ -14,6 +14,7 @@ const CATEGORY_CHIP: Record<Recommendation['category'], string> = {
   'output-cap': 'chip-warn',
   consolidation: 'chip-indigo',
   governance: 'chip-pink',
+  'batch-api': 'chip-lime',
 };
 
 const CONFIDENCE_CHIP: Record<Recommendation['confidence'], string> = {
@@ -65,6 +66,14 @@ function CategoryIcon({ category }: { category: Recommendation['category'] }) {
       return (
         <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case 'batch-api':
+      return (
+        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+          <rect x="2" y="3" width="20" height="5" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="2" y="10" width="20" height="5" rx="1" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="2" y="17" width="20" height="5" rx="1" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
   }

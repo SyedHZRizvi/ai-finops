@@ -78,8 +78,12 @@ function monthlyMultiplier(period: Period, rows: RawRow[]): { factor: number; re
 }
 
 function normalizeFingerprint(text: string): string {
+  // Fix: was 60 chars — too short. Two prompts starting with the same opener
+  // ("Please summarize the following:") would cluster even if they're about
+  // completely different content. Using 120 chars reduces false-positive
+  // clustering while still catching genuinely repeated prompts.
   return text
-    .slice(0, 60)
+    .slice(0, 120)
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
@@ -544,6 +548,57 @@ function deriveRecommendations(args: {
           category: 'prompt-rewrite',
         });
       }
+    }
+  }
+
+  // Batch API — OpenAI Batch API and Anthropic Message Batches both offer 50%
+  // discount for non-real-time workloads (24h SLA). This is the single highest-ROI
+  // technique for orgs with high call volume on non-interactive workloads
+  // (data enrichment, document processing, report generation, nightly pipelines).
+  //
+  // Fires when:
+  //   - Monthly call volume is high enough for batching to be worthwhile (>= 500/mo)
+  //   - At least one provider that supports Batch API is in use
+  //   - Monthly cost is meaningful (> $5/mo — batching has setup cost, not worth it for tiny spend)
+  const BATCH_CALL_THRESHOLD = 500;
+  const BATCH_COST_THRESHOLD = 5;
+  const monthlyCallVolume = Math.round(totalCalls * multiplier);
+  const batchSupportedProviders = new Set(['openai', 'anthropic']);
+  const usedProviders = new Set(rows.map(r => {
+    const m = r.model.toLowerCase();
+    if (m.includes('gpt') || m.includes('o1') || m.includes('o3')) return 'openai';
+    if (m.includes('claude')) return 'anthropic';
+    return null;
+  }).filter(Boolean));
+  const hasBatchProvider = [...usedProviders].some(p => p && batchSupportedProviders.has(p));
+
+  if (
+    hasBatchProvider &&
+    monthlyCallVolume >= BATCH_CALL_THRESHOLD &&
+    monthlyTotal >= BATCH_COST_THRESHOLD
+  ) {
+    // Conservative estimate: assume 30% of calls are non-interactive (background
+    // jobs, document processing, etc.) and would be safe to batch. 50% discount
+    // on those calls.
+    const batchableFraction = 0.3;
+    const batchSavings = monthlyTotal * batchableFraction * 0.5;
+    if (batchSavings > MIN) {
+      recs.push({
+        id: nextId(),
+        title: `Use Batch API for non-interactive workloads (~${Math.round(monthlyCallVolume * batchableFraction).toLocaleString()} calls/mo)`,
+        rationale:
+          `OpenAI Batch API and Anthropic Message Batches process requests within 24 hours at 50% of the standard price. ` +
+          `At ${monthlyCallVolume.toLocaleString()} calls/month, any background or non-real-time workload is a candidate.`,
+        action:
+          `Identify non-interactive workloads (nightly reports, document enrichment, data classification, bulk summarization). ` +
+          `OpenAI: use \`client.batches.create()\` with JSONL input file. Anthropic: use \`client.beta.messages.batches.create()\`. ` +
+          `No code changes to your prompts — only the API call pattern changes.`,
+        estimatedMonthlySavings: batchSavings,
+        estimatedAnnualSavings: batchSavings * 12,
+        affectedCalls: Math.round(totalCalls * batchableFraction),
+        confidence: 'medium',
+        category: 'batch-api',
+      });
     }
   }
 
