@@ -215,15 +215,15 @@ export function OptimizerForm() {
             />
             <span className="min-w-0">
               <span className="text-sm font-semibold text-brandLight">
-                Also use AI to rewrite this prompt
+                Minimize input &amp; output tokens with AI
               </span>
               <span className="block text-xs text-muted mt-0.5 leading-relaxed">
-                Calls{' '}
+                Uses{' '}
                 {llmAvailable.providers.includes('anthropic')
                   ? 'Claude Haiku'
                   : 'GPT-4o-mini'}{' '}
-                with your connected credential to restructure for clarity &amp; brevity.
-                Adds ~1-3 seconds.
+                to cut the prompt down (fewer input tokens) AND add output constraints
+                so the LLM responds more concisely (fewer output tokens). Adds ~1-3s.
               </span>
             </span>
           </label>
@@ -402,11 +402,9 @@ export function OptimizerForm() {
                         {llmAvailable.available ? (
                           <>
                             <span className="font-semibold text-brandLight">Tip:</span>{' '}
-                            tick &quot;Also use AI to rewrite this prompt&quot; on the left and
-                            re-analyze to get a structural rewrite from{' '}
-                            {llmAvailable.providers.includes('anthropic')
-                              ? 'Claude'
-                              : 'GPT'}.
+                            tick &quot;Minimize input &amp; output tokens with AI&quot; on the left and
+                            re-analyze. {llmAvailable.providers.includes('anthropic') ? 'Claude' : 'GPT'}{' '}
+                            will cut the prompt length AND add output constraints to reduce both sides of your bill.
                           </>
                         ) : (
                           <>
