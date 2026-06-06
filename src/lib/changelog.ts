@@ -136,7 +136,7 @@ export const CHANGELOG: ChangelogRelease[] = [
       {
         heading: 'Cron',
         items: [
-          'Scheduled imports run hourly via /api/cron/scheduled-imports.',
+          'Scheduled imports run daily via /api/cron/scheduled-imports.',
           'Daily anomaly check at /api/cron/anomaly-check writes detected events into AnomalyEvent.',
           'Daily digest broadcast at /api/cron/digest-broadcast emails (or webhooks) the summary card.',
           'Cron endpoints gated behind a shared bearer secret so they can\'t be triggered externally.',

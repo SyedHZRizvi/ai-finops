@@ -13,7 +13,7 @@ export const dynamic = 'force-static';
 
 export const metadata: Metadata = pageMetadata({
   // `pageMetadata` automatically suffixes "· AI FinOps", so this stays short.
-  title: 'Reduce your AI bill by 30-60%',
+  title: 'Track LLM costs and reduce AI overspend',
   description:
     'Track every LLM call. Classify every prompt. Get ranked, dollar-impact actions that lower your bill — across OpenAI, Anthropic, Gemini, Bedrock, Vertex and more.',
   path: '/welcome',
@@ -58,7 +58,7 @@ const HOW_IT_WORKS = [
   {
     step: '3',
     title: 'Action the ranked recommendations',
-    body: 'AI FinOps surfaces a sorted list of optimizations — each with confidence, estimated $/mo impact, and a one-click "apply" path in the optimizer.',
+    body: 'AI FinOps surfaces a sorted list of optimizations — each with confidence, estimated $/mo impact, and a direct path to apply in the optimizer.',
     accent: '#22c55e',
   },
 ] as const;
@@ -218,7 +218,7 @@ export default function WelcomePage() {
           <SectionHeader
             eyebrow="The problem"
             title="AI cost is a black box. We open it."
-            description="Every team we talk to has the same three problems. Generic observability gives you charts; it doesn't give you actions."
+            description="Most engineering teams building with AI face the same three problems. Generic observability gives you charts; it doesn't give you actions."
           />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {PROBLEMS.map((p, i) => (
@@ -295,7 +295,7 @@ export default function WelcomePage() {
             title="Real-time alerts to Slack."
             description="The anomaly engine watches your traffic and pings ops-alerts the moment cost or latency walks off baseline. Each alert includes likely cause, affected app/model, and a one-click jump back to the dashboard so on-call can act in seconds."
             bullets={[
-              '3.4x-baseline cost spike detection with rolling 7-day windows',
+              'Configurable cost spike detection with rolling 7-day windows',
               'Inline Slack action buttons: snooze, mark resolved, open dashboard',
               'Weekly digest email summarizes what changed since last Monday',
             ]}
@@ -450,24 +450,14 @@ export default function WelcomePage() {
                 rel="noreferrer noopener"
                 className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
               >
-                GitHub repo <span aria-hidden>↗</span>
+                GitHub <span aria-hidden>↗</span>
               </a>
-              <a
-                href="https://github.com/SyedHZRizvi/ai-finops/blob/main/docs/INTEGRATIONS.md"
-                target="_blank"
-                rel="noreferrer noopener"
+              <Link
+                href="/setup"
                 className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
               >
-                INTEGRATIONS.md <span aria-hidden>↗</span>
-              </a>
-              <a
-                href="https://github.com/SyedHZRizvi/ai-finops/blob/main/docs/SECURITY-AUDIT.md"
-                target="_blank"
-                rel="noreferrer noopener"
-                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
-              >
-                SECURITY-AUDIT.md <span aria-hidden>↗</span>
-              </a>
+                Integration guide
+              </Link>
               <Link
                 href="/api-docs"
                 className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"

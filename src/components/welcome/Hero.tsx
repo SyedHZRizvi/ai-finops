@@ -48,14 +48,14 @@ export function Hero() {
             className="chip chip-brand hover:scale-105 transition-transform inline-flex items-center"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-brand2 pulse-glow" aria-hidden />
-            <span>v0.1 beta · public API now stable</span>
+            <span>v0.1 beta · OpenAPI explorer available</span>
             <span aria-hidden className="opacity-70">→</span>
           </Link>
         </div>
 
         {/* Headline */}
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.05] fade-up-delay-1">
-          <span className="gradient-text">Reduce AI cost by 30-60%.</span>
+          <span className="gradient-text">Cut AI costs by up to 60%.</span>
           <br />
           <span className="text-ink">Without changing your apps.</span>
         </h1>

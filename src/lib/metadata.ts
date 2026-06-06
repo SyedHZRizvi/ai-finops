@@ -5,7 +5,7 @@ import type { Metadata } from 'next';
 
 export const SITE_NAME = 'AI FinOps';
 export const SITE_DESCRIPTION =
-  'Track every LLM token. Classify every prompt. Cut your AI bill by 30-60%.';
+  'Track every LLM token. Classify every prompt. Get ranked, dollar-impact actions to reduce your AI bill.';
 // Default Open Graph image. The actual file is an SVG; some social
 // crawlers prefer raster but most accept SVG, and we keep the path
 // stable so a future PNG drop-in can replace it without code changes.
