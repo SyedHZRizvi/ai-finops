@@ -265,7 +265,7 @@ export const ROADMAP: RoadmapItem[] = [
   },
   {
     id: 'audit-log',
-    title: 'Tamper-evident audit log',
+    title: 'Append-only audit log',
     description:
       'Append-only log of every mutating dashboard action. Filter bar, payload column, 8 KB cap per row.',
     status: 'shipped',

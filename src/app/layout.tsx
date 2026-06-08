@@ -109,6 +109,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 Feedback
               </Link>
               <span className="text-borderBright" aria-hidden>·</span>
+              <Link
+                href="/legal"
+                className="text-muted hover:text-ink hover:underline underline-offset-4 transition-colors"
+              >
+                Legal
+              </Link>
+              <span className="text-borderBright" aria-hidden>·</span>
               <HealthIndicator />
               <span className="text-borderBright" aria-hidden>·</span>
               <StreamingPulse showLabel />

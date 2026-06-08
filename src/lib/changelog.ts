@@ -42,7 +42,7 @@ export const CHANGELOG: ChangelogRelease[] = [
     date: '2026-05-29',
     title: 'Tests, Snapshots, Slack, and Audit',
     summary:
-      'A reliability-and-collaboration wave: a real Vitest suite, point-in-time insights snapshots, native Slack workspace integration, and a tamper-evident audit log for every dashboard mutation.',
+      'A reliability-and-collaboration wave: a real Vitest suite, point-in-time insights snapshots, native Slack workspace integration, and an append-only audit log for every dashboard mutation.',
     tags: ['feature', 'security'],
     sections: [
       {
@@ -50,7 +50,7 @@ export const CHANGELOG: ChangelogRelease[] = [
         items: [
           'Pin moment-in-time copies of the insights output at /snapshots.',
           'Compare any two snapshots side-by-side at /snapshots/compare — used to report on cost-reduction campaigns.',
-          'Snapshots immutably store the full computed payload so historical baselines never drift.',
+          'Snapshots preserve the full computed payload at capture time so historical baselines remain consistent.',
         ],
       },
       {

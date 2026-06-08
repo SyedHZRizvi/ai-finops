@@ -217,8 +217,8 @@ function Step2Connect({
       <div className="card card-pad">
         <div className="label">Connect providers</div>
         <div className="text-xs text-inkDim mt-1.5 leading-relaxed">
-          Paste an admin API key for each provider you use. Keys are encrypted at rest with
-          AES-256-GCM and never leave this machine.
+          Paste an admin API key for each provider you use. Keys are encrypted with
+          AES-256-GCM before storage — the raw value is never logged or stored in plain text.
         </div>
       </div>
 
