@@ -537,9 +537,12 @@ export function OptimizerForm() {
                 <div className="text-xs text-muted mt-1.5 leading-relaxed">
                   {llmResult.message}
                 </div>
-                {llmResult.reason === 'no-credentials' && (
+                {/* no-credentials → prompt to add a key; http → likely invalid/revoked key */}
+                {(llmResult.reason === 'no-credentials' || llmResult.reason === 'http') && (
                   <a href="/import" className="btn text-xs mt-3 inline-flex">
-                    Connect a provider →
+                    {llmResult.reason === 'no-credentials'
+                      ? 'Connect a provider →'
+                      : 'Update credentials →'}
                   </a>
                 )}
               </div>

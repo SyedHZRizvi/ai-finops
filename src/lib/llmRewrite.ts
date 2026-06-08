@@ -346,10 +346,34 @@ async function callAnthropic(
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
+    // 401 — key invalid / revoked
+    if (res.status === 401) {
+      return {
+        ok: false,
+        reason: 'http',
+        message:
+          'The Anthropic API key is invalid or has been revoked. Update it on the Connectors page.',
+      };
+    }
+    // 429 — rate-limited
+    if (res.status === 429) {
+      return {
+        ok: false,
+        reason: 'http',
+        message: 'Anthropic rate limit reached — try again in a moment.',
+      };
+    }
+    // Other errors — extract the provider's own message when present, avoid
+    // dumping the raw JSON body at the user.
+    let detail = '';
+    try {
+      const errJson = JSON.parse(body) as { error?: { message?: string } };
+      if (typeof errJson?.error?.message === 'string') detail = errJson.error.message;
+    } catch { /* ignore */ }
     return {
       ok: false,
       reason: 'http',
-      message: `Anthropic ${res.status}: ${body.slice(0, 200) || res.statusText}`,
+      message: detail || `Anthropic returned ${res.status} ${res.statusText || ''}`.trim(),
     };
   }
 
@@ -431,10 +455,30 @@ async function callOpenAI(
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
+    if (res.status === 401) {
+      return {
+        ok: false,
+        reason: 'http',
+        message:
+          'The OpenAI API key is invalid or has been revoked. Update it on the Connectors page.',
+      };
+    }
+    if (res.status === 429) {
+      return {
+        ok: false,
+        reason: 'http',
+        message: 'OpenAI rate limit reached — try again in a moment.',
+      };
+    }
+    let detail = '';
+    try {
+      const errJson = JSON.parse(body) as { error?: { message?: string } };
+      if (typeof errJson?.error?.message === 'string') detail = errJson.error.message;
+    } catch { /* ignore */ }
     return {
       ok: false,
       reason: 'http',
-      message: `OpenAI ${res.status}: ${body.slice(0, 200) || res.statusText}`,
+      message: detail || `OpenAI returned ${res.status} ${res.statusText || ''}`.trim(),
     };
   }
 
