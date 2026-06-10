@@ -87,6 +87,11 @@ const PROVIDER_COPY: Record<
     description: 'Claude, Llama, and other models hosted on AWS.',
     keyPlaceholder: '{"accessKeyId":"...","secretAccessKey":"...","region":"us-east-1"}',
   },
+  google: {
+    displayLabel: 'Google AI Studio (Gemini)',
+    description: 'Gemini 1.5 Flash via the free Google AI Studio API — used by the Optimizer AI rewrite. Free tier: 1 500 req/day, no credit card required. Get a key at aistudio.google.com/app/apikey.',
+    keyPlaceholder: 'AIza...',
+  },
   vertex: {
     displayLabel: 'Google Vertex AI',
     description: 'Gemini and PaLM models on Google Cloud.',
@@ -126,6 +131,7 @@ const PROVIDER_COPY: Record<
 
 const STUB_PROVIDERS = new Set([
   'bedrock',
+  'google',
   'vertex',
   'azure',
   'together',
