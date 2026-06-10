@@ -6,55 +6,42 @@
 // (the dominant case in real use), the heuristic correctly says "nothing
 // to rewrite" and returns the input unchanged.
 //
-// This module fills that gap. When the operator has connected an
-// Anthropic or OpenAI credential, we can ask the LLM itself to rewrite
-// the prompt: clearer structure, fewer tokens, same intent. The result
-// is surfaced separately in the UI so the heuristic baseline stays
-// reproducible and the LLM rewrite is opt-in / clearly attributed.
+// This module fills that gap. When the operator has connected any supported
+// LLM credential, we ask the model to rewrite the prompt: clearer structure,
+// fewer tokens, same intent.
+//
+// Supported providers (in fallback order):
+//   1. anthropic  — Claude Haiku 4.5 (paid; very fast and cheap)
+//   2. openai     — GPT-4o-mini (paid)
+//   3. google     — Gemini 1.5 Flash (FREE tier: 1 500 req/day, no credit card)
+//   4. groq       — Llama-3.1-8b-instant (FREE tier: 14 400 req/day, no credit card)
+//
+// Google and Groq are genuinely free — the operator just needs to create a
+// free account once and paste the key into Connectors. The key never expires
+// unless manually revoked.
 //
 // Design notes:
-//   - `rewriteWithLLM` NEVER throws. If creds are missing, the API call
-//     fails, JSON is malformed, etc., it returns `{ ok: false, reason }`.
-//     The caller decides whether to surface the failure or silently fall
-//     back to the heuristic.
-//   - We deliberately pick the CHEAPEST/FASTEST model per provider —
-//     Haiku for Anthropic, gpt-4o-mini for OpenAI. The optimizer is an
-//     advisory tool; latency and per-call cost matter more than ceiling
-//     quality.
-//   - The rewriter prompt is constrained to "rewrite the user prompt"
-//     and explicitly tells the LLM not to ANSWER the prompt. Returning
-//     an answer would be a categorical UX bug.
+//   - `rewriteWithLLM` NEVER throws. Any failure returns { ok: false, reason }.
+//   - We pick the cheapest/fastest model per provider.
+//   - Groq uses the OpenAI-compatible chat-completions format; both share
+//     `callOpenAICompat` to avoid duplication.
 
 import { prisma } from '@/lib/db';
 import { decrypt } from '@/lib/importers/crypto';
 
-export type LlmRewriteProvider = 'anthropic' | 'openai';
+export type LlmRewriteProvider = 'anthropic' | 'openai' | 'google' | 'groq';
 
 export interface LlmRewriteSuccess {
   ok: true;
-  /** The provider whose model produced the rewrite. */
   provider: LlmRewriteProvider;
-  /** Concrete model identifier used (so the UI can show it). */
   model: string;
-  /** The rewritten prompt. */
   rewrittenPrompt: string;
-  /** Optional 1-2 sentence rationale from the model. May be empty. */
   rationale: string;
-  /** Latency in ms (wall-clock). Useful for UI feedback. */
   latencyMs: number;
 }
 
 export interface LlmRewriteFailure {
   ok: false;
-  /**
-   * Machine-readable cause so the UI can render the right message.
-   *   - 'no-credentials'   → nothing configured; tell user to add a key
-   *   - 'encryption-key-missing' → FINOPS_ENCRYPTION_KEY isn't set
-   *   - 'network'          → fetch threw / timeout
-   *   - 'http'             → provider returned non-2xx
-   *   - 'malformed'        → response wasn't shaped like we expected
-   *   - 'empty'            → model returned an empty rewrite
-   */
   reason:
     | 'no-credentials'
     | 'encryption-key-missing'
@@ -67,12 +54,14 @@ export interface LlmRewriteFailure {
 
 export type LlmRewriteResult = LlmRewriteSuccess | LlmRewriteFailure;
 
+// All four supported providers, in the order the picker tries them when no
+// preference is given. Free-tier providers (google, groq) sit last so
+// existing paid credentials keep working without any change.
+const ALL_PROVIDERS: LlmRewriteProvider[] = ['anthropic', 'openai', 'google', 'groq'];
+
 /**
- * Returns true when at least one Anthropic or OpenAI Credential row is
- * active AND FINOPS_ENCRYPTION_KEY is present. Use this to enable/disable
- * the "Use LLM rewrite" button in the UI before the user clicks.
- *
- * Cheap; touches the DB but only `select id` of the matching row.
+ * Returns true when at least one supported credential is active AND
+ * FINOPS_ENCRYPTION_KEY is present.
  */
 export async function isLlmRewriteAvailable(): Promise<{
   available: boolean;
@@ -86,14 +75,14 @@ export async function isLlmRewriteAvailable(): Promise<{
     const rows = await prisma.credential.findMany({
       where: {
         isActive: true,
-        provider: { in: ['anthropic', 'openai'] },
+        provider: { in: ALL_PROVIDERS },
       },
       select: { provider: true },
       distinct: ['provider'],
     });
     const providers = rows
       .map((r) => r.provider)
-      .filter((p): p is LlmRewriteProvider => p === 'anthropic' || p === 'openai');
+      .filter((p): p is LlmRewriteProvider => (ALL_PROVIDERS as string[]).includes(p));
     return { available: providers.length > 0, providers };
   } catch {
     return { available: false, providers: [] };
@@ -101,15 +90,13 @@ export async function isLlmRewriteAvailable(): Promise<{
 }
 
 interface RewriteOptions {
-  /** Override provider preference. If omitted, anthropic > openai. */
   preferProvider?: LlmRewriteProvider;
-  /** Hard timeout for the upstream call. Defaults to 25s. */
   timeoutMs?: number;
 }
 
 /**
  * Rewrite a user prompt using whichever active credential we have.
- * Never throws. Fast-fails when no usable credential exists.
+ * Never throws.
  */
 export async function rewriteWithLLM(
   originalPrompt: string,
@@ -123,16 +110,13 @@ export async function rewriteWithLLM(
     };
   }
 
-  // Pick a credential. Default order: anthropic first (we use Haiku, very
-  // cheap and very fast), then openai (gpt-4o-mini). User override wins.
-  const preferred = opts.preferProvider;
-  const cred = await pickCredential(preferred);
+  const cred = await pickCredential(opts.preferProvider);
   if (!cred) {
     return {
       ok: false,
       reason: 'no-credentials',
       message:
-        'Add an Anthropic or OpenAI credential on /import to enable LLM-backed prompt rewriting.',
+        'Connect a free provider to enable AI rewriting. Add a Google or Groq key on /import — both are free with no credit card required.',
     };
   }
 
@@ -154,24 +138,39 @@ export async function rewriteWithLLM(
   const started = Date.now();
   const timeoutMs = opts.timeoutMs ?? 25_000;
   try {
-    if (cred.provider === 'anthropic') {
-      return await callAnthropic(apiKey, originalPrompt, started, timeoutMs);
+    switch (cred.provider) {
+      case 'anthropic': return await callAnthropic(apiKey, originalPrompt, started, timeoutMs);
+      case 'google':    return await callGoogle(apiKey, originalPrompt, started, timeoutMs);
+      case 'groq':      return await callOpenAICompat(
+        'https://api.groq.com/openai/v1/chat/completions',
+        apiKey,
+        'llama-3.1-8b-instant',
+        'groq',
+        'Groq',
+        originalPrompt,
+        started,
+        timeoutMs,
+      );
+      default:          return await callOpenAICompat(
+        'https://api.openai.com/v1/chat/completions',
+        apiKey,
+        'gpt-4o-mini',
+        'openai',
+        'OpenAI',
+        originalPrompt,
+        started,
+        timeoutMs,
+      );
     }
-    return await callOpenAI(apiKey, originalPrompt, started, timeoutMs);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'unknown error';
     if (message.includes('aborted') || message.toLowerCase().includes('timeout')) {
-      return { ok: false, reason: 'network', message: `Upstream timed out after ${timeoutMs}ms` };
+      return { ok: false, reason: 'network', message: `Upstream timed out after ${timeoutMs} ms` };
     }
     return { ok: false, reason: 'network', message };
   }
 }
 
-/**
- * Resolve which credential to use. Looks for an active Anthropic row
- * first (cheapest fast model), falls back to OpenAI. Caller override
- * pins the choice when supplied.
- */
 async function pickCredential(
   prefer: LlmRewriteProvider | undefined,
 ): Promise<{
@@ -180,22 +179,13 @@ async function pickCredential(
   iv: string;
   authTag: string;
 } | null> {
-  // When a preference is supplied, ONLY try that provider — don't silently
-  // fall back to the other since the user explicitly picked.
-  const providerOrder: LlmRewriteProvider[] = prefer
-    ? [prefer]
-    : ['anthropic', 'openai'];
+  const order: LlmRewriteProvider[] = prefer ? [prefer] : ALL_PROVIDERS;
 
-  for (const provider of providerOrder) {
+  for (const provider of order) {
     const row = await prisma.credential.findFirst({
       where: { provider, isActive: true },
       orderBy: { createdAt: 'asc' },
-      select: {
-        provider: true,
-        encryptedBlob: true,
-        iv: true,
-        authTag: true,
-      },
+      select: { provider: true, encryptedBlob: true, iv: true, authTag: true },
     });
     if (row) {
       return {
@@ -209,29 +199,9 @@ async function pickCredential(
   return null;
 }
 
-/**
- * The system instruction we send to whichever model — kept identical
- * across providers so users get the same UX regardless of which key
- * they connected.
- *
- * Three things this MUST do:
- *   1. Rewrite, don't answer. (Categorical UX bug if it answers.)
- *   2. Preserve the user's intent exactly. (No new facts, no removed
- *      asks.)
- *   3. Return a structured JSON object so we can parse it deterministically
- *      and surface a rationale separately from the rewrite.
- */
-// Token-cost-aware rewrite system prompt.
-//
-// Two levers that reduce AI spend per call:
-//   1. INPUT tokens  — every word in the prompt costs input-token rate.
-//                     Shorter, direct prompts cost less every time they're sent.
-//   2. OUTPUT tokens — the prompt's *phrasing* controls how much the LLM writes
-//                     back. Vague, open-ended prompts invite long discursive
-//                     answers. Constrained, structured prompts elicit tight ones.
-//
-// The instructions below make both explicit so the rewriter actively cuts
-// both sides of the bill, not just tidies prose.
+// ─── System prompt ────────────────────────────────────────────────────────────
+// Kept identical across all providers so users get consistent UX regardless
+// of which credential they connected.
 const REWRITE_SYSTEM = `You are a token-cost optimization expert for enterprise AI systems. The user will give you a prompt they intend to send to an LLM. Your job is to rewrite it to minimize BOTH input and output token costs while preserving the full intent.
 
 TWO goals — treat them equally:
@@ -271,16 +241,12 @@ interface RewriteJson {
   rationale?: unknown;
 }
 
-/** Extract `{rewrittenPrompt, rationale}` from a model response string. */
 function parseRewriteJson(raw: string): { rewrittenPrompt: string; rationale: string } | null {
-  // Models sometimes wrap JSON in markdown fences even when told not to.
-  // Strip the most common variants before parsing.
   let cleaned = raw.trim();
   cleaned = cleaned.replace(/^```(?:json)?\s*/i, '');
   cleaned = cleaned.replace(/```$/, '');
   cleaned = cleaned.trim();
 
-  // Be generous: find the first `{` and the last `}` to handle pre/post junk.
   const first = cleaned.indexOf('{');
   const last = cleaned.lastIndexOf('}');
   if (first === -1 || last === -1 || last <= first) return null;
@@ -298,22 +264,14 @@ function parseRewriteJson(raw: string): { rewrittenPrompt: string; rationale: st
   }
 }
 
+// ─── Provider implementations ─────────────────────────────────────────────────
+
 async function callAnthropic(
   apiKey: string,
   originalPrompt: string,
   started: number,
   timeoutMs: number,
 ): Promise<LlmRewriteResult> {
-  // Haiku is the right pick: tiny per-token cost, sub-2s latency for
-  // prompts this small. Newer Sonnet / Opus would be overkill and would
-  // slow the UX noticeably.
-  //
-  // Use a specific dated model identifier rather than a `-latest` alias.
-  // Anthropic doesn't guarantee that every model has a `-latest` alias
-  // resolved on every endpoint (the older `claude-3-5-haiku-latest` alias
-  // returned 404 in production when this code first shipped). Pinning to a
-  // dated version is more reliable and gives us reproducible behavior.
-  // claude-haiku-4-5 is the current-generation Haiku as of 2026.
   const model = 'claude-haiku-4-5';
 
   const controller = new AbortController();
@@ -332,12 +290,7 @@ async function callAnthropic(
         model,
         max_tokens: 2048,
         system: REWRITE_SYSTEM,
-        messages: [
-          {
-            role: 'user',
-            content: `Rewrite this prompt:\n\n<<<\n${originalPrompt}\n>>>`,
-          },
-        ],
+        messages: [{ role: 'user', content: `Rewrite this prompt:\n\n<<<\n${originalPrompt}\n>>>` }],
       }),
     });
   } finally {
@@ -346,89 +299,44 @@ async function callAnthropic(
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    // 401 — key invalid / revoked
-    if (res.status === 401) {
-      return {
-        ok: false,
-        reason: 'http',
-        message:
-          'The Anthropic API key is invalid or has been revoked. Update it on the Connectors page.',
-      };
-    }
-    // 429 — rate-limited
-    if (res.status === 429) {
-      return {
-        ok: false,
-        reason: 'http',
-        message: 'Anthropic rate limit reached — try again in a moment.',
-      };
-    }
-    // Other errors — extract the provider's own message when present, avoid
-    // dumping the raw JSON body at the user.
+    if (res.status === 401) return { ok: false, reason: 'http', message: 'The Anthropic API key is invalid or has been revoked. Update it on the Connectors page.' };
+    if (res.status === 429) return { ok: false, reason: 'http', message: 'Anthropic rate limit reached — try again in a moment.' };
     let detail = '';
-    try {
-      const errJson = JSON.parse(body) as { error?: { message?: string } };
-      if (typeof errJson?.error?.message === 'string') detail = errJson.error.message;
-    } catch { /* ignore */ }
-    return {
-      ok: false,
-      reason: 'http',
-      message: detail || `Anthropic returned ${res.status} ${res.statusText || ''}`.trim(),
-    };
+    try { const e = JSON.parse(body) as { error?: { message?: string } }; if (typeof e?.error?.message === 'string') detail = e.error.message; } catch { /* ignore */ }
+    return { ok: false, reason: 'http', message: detail || `Anthropic returned ${res.status} ${res.statusText || ''}`.trim() };
   }
 
-  // Anthropic Messages API returns: { content: [{type:'text', text:'...'}, ...] }
-  let json: {
-    content?: Array<{ type?: string; text?: string }>;
-  };
-  try {
-    json = (await res.json()) as typeof json;
-  } catch {
-    return { ok: false, reason: 'malformed', message: 'Anthropic returned non-JSON.' };
-  }
+  let json: { content?: Array<{ type?: string; text?: string }> };
+  try { json = (await res.json()) as typeof json; } catch { return { ok: false, reason: 'malformed', message: 'Anthropic returned non-JSON.' }; }
+
   const text = (json.content ?? [])
     .filter((c) => c.type === 'text' && typeof c.text === 'string')
-    .map((c) => c.text as string)
-    .join('\n')
-    .trim();
-  if (!text) {
-    return { ok: false, reason: 'empty', message: 'Anthropic returned an empty content array.' };
-  }
+    .map((c) => c.text as string).join('\n').trim();
+  if (!text) return { ok: false, reason: 'empty', message: 'Anthropic returned an empty response.' };
 
   const parsed = parseRewriteJson(text);
-  if (!parsed) {
-    return {
-      ok: false,
-      reason: 'malformed',
-      message: 'Could not parse JSON {rewrittenPrompt, rationale} from Anthropic response.',
-    };
-  }
+  if (!parsed) return { ok: false, reason: 'malformed', message: 'Could not parse JSON from Anthropic response.' };
 
-  return {
-    ok: true,
-    provider: 'anthropic',
-    model,
-    rewrittenPrompt: parsed.rewrittenPrompt,
-    rationale: parsed.rationale,
-    latencyMs: Date.now() - started,
-  };
+  return { ok: true, provider: 'anthropic', model, rewrittenPrompt: parsed.rewrittenPrompt, rationale: parsed.rationale, latencyMs: Date.now() - started };
 }
 
-async function callOpenAI(
+// Shared implementation for OpenAI-compatible APIs (OpenAI itself and Groq,
+// which mirrors the OpenAI chat-completions endpoint exactly).
+async function callOpenAICompat(
+  baseUrl: string,
   apiKey: string,
+  model: string,
+  provider: LlmRewriteProvider,
+  providerName: string,
   originalPrompt: string,
   started: number,
   timeoutMs: number,
 ): Promise<LlmRewriteResult> {
-  // gpt-4o-mini is the price/latency analogue of Haiku. Use the
-  // chat-completions JSON-mode option for deterministic parsing.
-  const model = 'gpt-4o-mini';
-
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   let res: Response;
   try {
-    res = await fetch('https://api.openai.com/v1/chat/completions', {
+    res = await fetch(baseUrl, {
       method: 'POST',
       signal: controller.signal,
       headers: {
@@ -437,15 +345,11 @@ async function callOpenAI(
       },
       body: JSON.stringify({
         model,
-        // Force JSON output so the parser path is robust.
         response_format: { type: 'json_object' },
         temperature: 0.2,
         messages: [
           { role: 'system', content: REWRITE_SYSTEM },
-          {
-            role: 'user',
-            content: `Rewrite this prompt:\n\n<<<\n${originalPrompt}\n>>>`,
-          },
+          { role: 'user', content: `Rewrite this prompt:\n\n<<<\n${originalPrompt}\n>>>` },
         ],
       }),
     });
@@ -455,60 +359,75 @@ async function callOpenAI(
 
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    if (res.status === 401) {
-      return {
-        ok: false,
-        reason: 'http',
-        message:
-          'The OpenAI API key is invalid or has been revoked. Update it on the Connectors page.',
-      };
-    }
-    if (res.status === 429) {
-      return {
-        ok: false,
-        reason: 'http',
-        message: 'OpenAI rate limit reached — try again in a moment.',
-      };
-    }
+    if (res.status === 401) return { ok: false, reason: 'http', message: `The ${providerName} API key is invalid or has been revoked. Update it on the Connectors page.` };
+    if (res.status === 429) return { ok: false, reason: 'http', message: `${providerName} rate limit reached — try again in a moment.` };
     let detail = '';
-    try {
-      const errJson = JSON.parse(body) as { error?: { message?: string } };
-      if (typeof errJson?.error?.message === 'string') detail = errJson.error.message;
-    } catch { /* ignore */ }
-    return {
-      ok: false,
-      reason: 'http',
-      message: detail || `OpenAI returned ${res.status} ${res.statusText || ''}`.trim(),
-    };
+    try { const e = JSON.parse(body) as { error?: { message?: string } }; if (typeof e?.error?.message === 'string') detail = e.error.message; } catch { /* ignore */ }
+    return { ok: false, reason: 'http', message: detail || `${providerName} returned ${res.status} ${res.statusText || ''}`.trim() };
   }
 
-  let json: {
-    choices?: Array<{ message?: { content?: string | null } }>;
-  };
-  try {
-    json = (await res.json()) as typeof json;
-  } catch {
-    return { ok: false, reason: 'malformed', message: 'OpenAI returned non-JSON.' };
-  }
+  let json: { choices?: Array<{ message?: { content?: string | null } }> };
+  try { json = (await res.json()) as typeof json; } catch { return { ok: false, reason: 'malformed', message: `${providerName} returned non-JSON.` }; }
+
   const text = (json.choices?.[0]?.message?.content ?? '').trim();
-  if (!text) {
-    return { ok: false, reason: 'empty', message: 'OpenAI returned an empty choices array.' };
-  }
+  if (!text) return { ok: false, reason: 'empty', message: `${providerName} returned an empty response.` };
+
   const parsed = parseRewriteJson(text);
-  if (!parsed) {
-    return {
-      ok: false,
-      reason: 'malformed',
-      message: 'Could not parse JSON {rewrittenPrompt, rationale} from OpenAI response.',
-    };
+  if (!parsed) return { ok: false, reason: 'malformed', message: `Could not parse JSON from ${providerName} response.` };
+
+  return { ok: true, provider, model, rewrittenPrompt: parsed.rewrittenPrompt, rationale: parsed.rationale, latencyMs: Date.now() - started };
+}
+
+// Google Gemini — free tier via AI Studio key.
+// Free limits: 15 RPM, 1 000 000 TPM, 1 500 RPD.
+// Get a free key at: https://aistudio.google.com/app/apikey
+async function callGoogle(
+  apiKey: string,
+  originalPrompt: string,
+  started: number,
+  timeoutMs: number,
+): Promise<LlmRewriteResult> {
+  const model = 'gemini-1.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      signal: controller.signal,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          { role: 'user', parts: [{ text: `Rewrite this prompt:\n\n<<<\n${originalPrompt}\n>>>` }] },
+        ],
+        systemInstruction: { parts: [{ text: REWRITE_SYSTEM }] },
+        generationConfig: { maxOutputTokens: 2048, temperature: 0.2 },
+      }),
+    });
+  } finally {
+    clearTimeout(timer);
   }
 
-  return {
-    ok: true,
-    provider: 'openai',
-    model,
-    rewrittenPrompt: parsed.rewrittenPrompt,
-    rationale: parsed.rationale,
-    latencyMs: Date.now() - started,
-  };
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    if (res.status === 400 || res.status === 401 || res.status === 403) return { ok: false, reason: 'http', message: 'The Google Gemini API key is invalid or has been revoked. Update it on the Connectors page.' };
+    if (res.status === 429) return { ok: false, reason: 'http', message: 'Google Gemini rate limit reached — try again in a moment.' };
+    let detail = '';
+    try { const e = JSON.parse(body) as { error?: { message?: string } }; if (typeof e?.error?.message === 'string') detail = e.error.message; } catch { /* ignore */ }
+    return { ok: false, reason: 'http', message: detail || `Google Gemini returned ${res.status} ${res.statusText || ''}`.trim() };
+  }
+
+  let json: { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
+  try { json = (await res.json()) as typeof json; } catch { return { ok: false, reason: 'malformed', message: 'Google Gemini returned non-JSON.' }; }
+
+  const text = (json.candidates?.[0]?.content?.parts ?? [])
+    .map((p) => p.text ?? '').join('\n').trim();
+  if (!text) return { ok: false, reason: 'empty', message: 'Google Gemini returned an empty response.' };
+
+  const parsed = parseRewriteJson(text);
+  if (!parsed) return { ok: false, reason: 'malformed', message: 'Could not parse JSON from Google Gemini response.' };
+
+  return { ok: true, provider: 'google', model, rewrittenPrompt: parsed.rewrittenPrompt, rationale: parsed.rationale, latencyMs: Date.now() - started };
 }

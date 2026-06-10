@@ -22,7 +22,21 @@ function formatNum(n: number): string {
 // (rather than imported from the lib) to keep the client bundle free of any
 // server-only imports.
 // ============================================================================
-type LlmRewriteProvider = 'anthropic' | 'openai';
+type LlmRewriteProvider = 'anthropic' | 'openai' | 'google' | 'groq';
+
+function providerLabel(p: LlmRewriteProvider): string {
+  if (p === 'anthropic') return 'Claude';
+  if (p === 'google') return 'Gemini';
+  if (p === 'groq') return 'Groq';
+  return 'GPT';
+}
+
+function modelLabel(p: LlmRewriteProvider): string {
+  if (p === 'anthropic') return 'Claude Haiku';
+  if (p === 'google') return 'Gemini 1.5 Flash (free)';
+  if (p === 'groq') return 'Llama 3.1 via Groq (free)';
+  return 'GPT-4o-mini';
+}
 
 interface LlmRewriteSuccess {
   ok: true;
@@ -219,9 +233,11 @@ export function OptimizerForm() {
               </span>
               <span className="block text-xs text-muted mt-0.5 leading-relaxed">
                 Uses{' '}
-                {llmAvailable.providers.includes('anthropic')
-                  ? 'Claude Haiku'
-                  : 'GPT-4o-mini'}{' '}
+                {modelLabel(
+                  llmAvailable.providers.find((p) =>
+                    (['anthropic', 'openai', 'google', 'groq'] as LlmRewriteProvider[]).includes(p),
+                  ) ?? 'openai',
+                )}{' '}
                 to cut the prompt down (fewer input tokens) AND add output constraints
                 so the LLM responds more concisely (fewer output tokens). Adds ~1-3s.
               </span>
@@ -488,8 +504,12 @@ export function OptimizerForm() {
               <div className="card card-pad text-sm text-muted flex items-center gap-2 fade-up-delay-3">
                 <span className="inline-block w-3 h-3 border-2 border-brand border-t-transparent rounded-full animate-spin" />
                 Asking{' '}
-                {llmAvailable.providers.includes('anthropic') ? 'Claude' : 'GPT'} to
-                rewrite the prompt...
+                {providerLabel(
+                  llmAvailable.providers.find((p) =>
+                    (['anthropic', 'openai', 'google', 'groq'] as LlmRewriteProvider[]).includes(p),
+                  ) ?? 'openai',
+                )}{' '}
+                to rewrite the prompt...
               </div>
             )}
             {llmResult && llmResult.ok && (
@@ -503,8 +523,7 @@ export function OptimizerForm() {
                   <div className="flex items-start justify-between gap-3 mb-3 flex-wrap">
                     <div className="flex items-center gap-2">
                       <span className="chip chip-brand">
-                        AI-rewritten by{' '}
-                        {llmResult.provider === 'anthropic' ? 'Claude' : 'GPT'}
+                        AI-rewritten by {providerLabel(llmResult.provider)}
                       </span>
                       <span className="text-xs text-muted font-mono">
                         {llmResult.model}
