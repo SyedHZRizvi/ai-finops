@@ -96,7 +96,9 @@ interface RewriteOptions {
 
 /**
  * Rewrite a user prompt using whichever active credential we have.
- * Never throws.
+ * Tries providers in ALL_PROVIDERS order and automatically falls back to
+ * the next one if the current provider fails (e.g. expired key, model
+ * error, rate limit). Never throws.
  */
 export async function rewriteWithLLM(
   originalPrompt: string,
@@ -110,65 +112,73 @@ export async function rewriteWithLLM(
     };
   }
 
-  const cred = await pickCredential(opts.preferProvider);
-  if (!cred) {
-    return {
-      ok: false,
-      reason: 'no-credentials',
-      message:
-        'Connect a free provider to enable AI rewriting. Add a Google or Groq key on /import — both are free with no credit card required.',
-    };
-  }
-
-  let apiKey: string;
-  try {
-    apiKey = decrypt({
-      encryptedBlob: cred.encryptedBlob,
-      iv: cred.iv,
-      authTag: cred.authTag,
-    });
-  } catch (err) {
-    return {
-      ok: false,
-      reason: 'encryption-key-missing',
-      message: err instanceof Error ? err.message : 'failed to decrypt credential',
-    };
-  }
-
-  const started = Date.now();
   const timeoutMs = opts.timeoutMs ?? 25_000;
-  try {
-    switch (cred.provider) {
-      case 'anthropic': return await callAnthropic(apiKey, originalPrompt, started, timeoutMs);
-      case 'google':    return await callGoogle(apiKey, originalPrompt, started, timeoutMs);
-      case 'groq':      return await callOpenAICompat(
-        'https://api.groq.com/openai/v1/chat/completions',
-        apiKey,
-        'llama-3.1-8b-instant',
-        'groq',
-        'Groq',
-        originalPrompt,
-        started,
-        timeoutMs,
-      );
-      default:          return await callOpenAICompat(
-        'https://api.openai.com/v1/chat/completions',
-        apiKey,
-        'gpt-4o-mini',
-        'openai',
-        'OpenAI',
-        originalPrompt,
-        started,
-        timeoutMs,
-      );
+  const order: LlmRewriteProvider[] = opts.preferProvider ? [opts.preferProvider] : ALL_PROVIDERS;
+  let lastFailure: LlmRewriteResult | null = null;
+
+  for (const provider of order) {
+    // Look up credential for this specific provider
+    const cred = await pickCredentialForProvider(provider);
+    if (!cred) continue;
+
+    let apiKey: string;
+    try {
+      apiKey = decrypt({ encryptedBlob: cred.encryptedBlob, iv: cred.iv, authTag: cred.authTag });
+    } catch (err) {
+      // Decryption failure is fatal — mismatched encryption key, skip provider
+      lastFailure = {
+        ok: false,
+        reason: 'encryption-key-missing',
+        message: err instanceof Error ? err.message : 'failed to decrypt credential',
+      };
+      continue;
     }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'unknown error';
-    if (message.includes('aborted') || message.toLowerCase().includes('timeout')) {
-      return { ok: false, reason: 'network', message: `Upstream timed out after ${timeoutMs} ms` };
+
+    const started = Date.now();
+    let result: LlmRewriteResult;
+    try {
+      switch (provider) {
+        case 'anthropic':
+          result = await callAnthropic(apiKey, originalPrompt, started, timeoutMs);
+          break;
+        case 'google':
+          result = await callGoogle(apiKey, originalPrompt, started, timeoutMs);
+          break;
+        case 'groq':
+          result = await callOpenAICompat(
+            'https://api.groq.com/openai/v1/chat/completions',
+            apiKey, 'llama-3.1-8b-instant', 'groq', 'Groq',
+            originalPrompt, started, timeoutMs,
+          );
+          break;
+        default:
+          result = await callOpenAICompat(
+            'https://api.openai.com/v1/chat/completions',
+            apiKey, 'gpt-4o-mini', 'openai', 'OpenAI',
+            originalPrompt, started, timeoutMs,
+          );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'unknown error';
+      lastFailure = message.includes('aborted') || message.toLowerCase().includes('timeout')
+        ? { ok: false, reason: 'network', message: `Upstream timed out after ${timeoutMs} ms` }
+        : { ok: false, reason: 'network', message };
+      continue; // Try next provider
     }
-    return { ok: false, reason: 'network', message };
+
+    if (result.ok) return result; //
+
+    // Any failure → fall back to the next provider and remember this error
+    // in case nothing else works.
+    lastFailure = result;
   }
+
+  return lastFailure ?? {
+    ok: false,
+    reason: 'no-credentials',
+    message:
+      'Connect a free provider to enable AI rewriting. Add a Google or Groq key on /import — both are free with no credit card required.',
+  };
 }
 
 async function pickCredential(
@@ -197,6 +207,27 @@ async function pickCredential(
     }
   }
   return null;
+}
+
+/** Fetch the stored credential for a single specific provider. Returns null if none. */
+async function pickCredentialForProvider(provider: LlmRewriteProvider): Promise<{
+  provider: LlmRewriteProvider;
+  encryptedBlob: string;
+  iv: string;
+  authTag: string;
+} | null> {
+  const row = await prisma.credential.findFirst({
+    where: { provider, isActive: true },
+    orderBy: { createdAt: 'asc' },
+    select: { provider: true, encryptedBlob: true, iv: true, authTag: true },
+  });
+  if (!row) return null;
+  return {
+    provider: row.provider as LlmRewriteProvider,
+    encryptedBlob: row.encryptedBlob,
+    iv: row.iv,
+    authTag: row.authTag,
+  };
 }
 
 // ─── System prompt ────────────────────────────────────────────────────────────
@@ -387,7 +418,7 @@ async function callGoogle(
   started: number,
   timeoutMs: number,
 ): Promise<LlmRewriteResult> {
-  const model = 'gemini-1.5-flash';
+  const model = 'gemini-2.0-flash';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const controller = new AbortController();
