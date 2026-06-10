@@ -22,14 +22,21 @@ import { groqImporter } from './groq';
 import { mistralImporter } from './mistral';
 import { cohereImporter } from './cohere';
 
-// `google` is the legacy slot for the Google Cloud / Vertex AI importer;
-// it now resolves to the same stub as the canonical `vertex` provider so
-// any credentials stored under the old name keep working. The card UI
-// surfaces only the new name.
-const googleAlias: Importer = {
+// `google` = Google AI Studio (Gemini) — simple API key (AIza... or AQ....)
+// This provider is used by the Optimizer's LLM rewrite feature.
+// There is no billing usage API for AI Studio, so the importer stores the
+// credential and returns 0 records with a note.
+const googleAiStudioImporter: Importer = {
   provider: 'google',
-  label: vertexImporter.label,
-  run: vertexImporter.run,
+  label: 'Google AI Studio (Gemini)',
+  async run() {
+    return {
+      records: [],
+      warnings: [
+        'Google AI Studio does not expose a billing usage API — the key is stored for the Optimizer AI rewrite feature (Gemini 1.5 Flash). No usage records to import.',
+      ],
+    };
+  },
 };
 
 const REGISTRY: Record<SupportedProvider, Importer> = {
@@ -39,7 +46,7 @@ const REGISTRY: Record<SupportedProvider, Importer> = {
   bedrock: bedrockImporter,
   vertex: vertexImporter,
   azure: azureImporter,
-  google: googleAlias,
+  google: googleAiStudioImporter,
   together: togetherImporter,
   replicate: replicateImporter,
   groq: groqImporter,
@@ -64,6 +71,7 @@ export function listImporters(): ImporterListEntry[] {
     { provider: 'anthropic', label: 'Anthropic (admin API)', implemented: true },
     { provider: 'openai', label: 'OpenAI (org usage API)', implemented: true },
     { provider: 'csv', label: 'Generic CSV upload', implemented: true },
+    { provider: 'google', label: 'Google AI Studio (Gemini)', implemented: false },
     { provider: 'bedrock', label: 'Amazon Bedrock (Cost Explorer)', implemented: false },
     { provider: 'vertex', label: 'Google Vertex AI (Cloud Billing)', implemented: false },
     { provider: 'azure', label: 'Azure OpenAI (Cost Management)', implemented: false },
